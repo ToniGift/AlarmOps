@@ -55,3 +55,13 @@ def test_referenced_scripts_exist():
 def test_no_secrets_or_tokens_in_pipeline_file():
     text = (ROOT / ".gitlab-ci.yml").read_text()
     assert "glpat-" not in text
+
+
+def test_artifacts_outlive_judging():
+    """Judging ends 14 Nov 2026 and winners are announced ~16 Nov; keep artifacts >= 6 weeks."""
+    text = (ROOT / ".gitlab-ci.yml").read_text()
+    values = re.findall(r"expire_in:\s*(\d+)\s*(week|month)s?", text)
+    assert values, "no expire_in found"
+    for n, unit in values:
+        weeks = int(n) * (1 if unit == "week" else 4)
+        assert weeks >= 6, f"expire_in {n} {unit}(s) is too short for the judging window"

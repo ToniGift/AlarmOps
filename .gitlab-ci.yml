@@ -84,7 +84,7 @@ replay_review:
     when: always
     paths:
       - out/
-    expire_in: 1 week
+    expire_in: 2 months
   # TODO(duo): merge-request review agent (reads the rules diff and comments).
   # Needs a CI variable GITLAB_API_TOKEN (project access token, api scope) to comment.
 
@@ -114,7 +114,7 @@ replay_test:
     when: always
     paths:
       - out/floor_summary.md
-    expire_in: 1 week
+    expire_in: 2 months
 
 # ------------------------------------------------------------ security
 secret_detection:                   # job comes from the template above
@@ -141,7 +141,7 @@ change_record:
   artifacts:
     paths:
       - out/change_record.md
-    expire_in: 4 weeks
+    expire_in: 2 months
 
 sbom:
   stage: compliance
@@ -156,7 +156,7 @@ sbom:
   artifacts:
     paths:
       - out/sbom.cdx.json
-    expire_in: 4 weeks
+    expire_in: 2 months
 
 # ------------------------------------------------------ deploy_staging
 deploy_staging:
@@ -173,7 +173,7 @@ deploy_staging:
   artifacts:
     paths:
       - deploy/staging/
-    expire_in: 1 week
+    expire_in: 2 months
 
 build_image:                        # optional; UNTESTED here (needs a Docker-capable runner)
   stage: deploy_staging
