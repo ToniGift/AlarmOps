@@ -25,7 +25,7 @@ ALLOW = "alarmops: allow-secret"
 
 
 def tracked_files() -> list[str]:
-    out = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+    out = subprocess.run(["git", "ls-files"],
                          capture_output=True, text=True, cwd=ROOT)
     return out.stdout.split() if out.returncode == 0 else []
 

@@ -6,14 +6,21 @@ monitors changes to industrial **alarm-limit** configuration.
 
 Built for the GitLab Transcend "Life After Code" hackathon. License: MIT.
 
-> Status: Phases 1-2 (application, replay harness, gate scripts). Pipeline,
-> agents and full docs come in later phases.
+> Status: Phases 1-3 done (application, replay harness, gate scripts, CI pipeline).
+> Demo branches, full docs and Duo agent setup come next.
+
+## Pipeline
+
+`plan` -> `review` -> `test` -> `security` -> `compliance` -> `deploy_staging` ->
+`validate` -> `approve` (manual, default branch only) -> `monitor`.
+Deployment is **simulated**: a release is `alarms.yaml` plus a hashed manifest,
+verified before the human-approved promotion to "production".
 
 ## Run it locally
 
 ```bash
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt && pip install -e .
+pip install -r requirements-dev.txt && pip install -e .
 python data/generate_dataset.py                      # optional: regenerate (seeded)
 python -m pytest -q
 python -m alarmops.replay --rules alarms.yaml --out reports/baseline.json

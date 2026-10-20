@@ -8,3 +8,5 @@ venv/
 out/
 *.zip
 deploy/
+.cache/
+.sbom-env/
