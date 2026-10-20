@@ -51,6 +51,38 @@ All numbers are produced by the replay harness on the committed dataset
 | `demo-change-c` | Tightens the tank limits to 75 / 88 | Passes every stage; **waits for human approval**. 21/21, 0 false alarms |
 | Post-deploy monitor | Simulated drifting alarm log | Detects drift: `pump_pressure` 0.79 to 13.67 alarms/hour |
 
+## Architecture
+
+```mermaid
+flowchart TB
+  dev["Developer<br/>edits alarms.yaml"] --> mr
+  approver["Approver<br/>approves production"] --> env
+
+  subgraph gl["GitLab"]
+    mr["Merge request"] --> pipe["CI/CD pipeline<br/>9 stages"]
+    pipe --> env["Environments<br/>staging, production"]
+    issues["Issues and Duo agents<br/>alerts, agents planned"]
+  end
+
+  subgraph repo["The repository"]
+    rules["Rules<br/>alarms.yaml, gate.yaml"] --> scripts["Scripts<br/>one per job"]
+    scripts --> lib["Library<br/>src/alarmops"]
+    data["Simulated data<br/>readings, faults, logs"] --> lib
+  end
+
+  pipe -->|runs| scripts
+  pipe -.->|monitor opens| issues
+
+  subgraph live["Optional live deployment"]
+    visitor["Visitor"] --> run["Cloud Run<br/>web page and API"]
+    img["Docker image"] --> run
+  end
+  lib -->|packaged as| img
+```
+
+Everything inside "The repository" is simulation: no real plant connection. The Cloud Run part is optional
+and only live once you deploy it (see "Google Cloud" below).
+
 ## Pipeline
 
 ```mermaid
