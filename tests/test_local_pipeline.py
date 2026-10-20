@@ -20,7 +20,8 @@ def test_demo_branches_behave_as_designed(tmp_path):
         src = ROOT / item
         if src.is_dir():
             shutil.copytree(src, repo / item, ignore=shutil.ignore_patterns(
-                "__pycache__", "test_local_pipeline.py"))   # avoid recursion
+                "__pycache__", "test_local_pipeline.py",   # avoid recursion
+                "test_ci_review.py"))                      # needs POSIX sh; covered separately
         else:
             shutil.copy(src, repo / item)
     shutil.copy(BASELINE_RULES, repo / "alarms.yaml")

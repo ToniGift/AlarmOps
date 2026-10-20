@@ -9,6 +9,10 @@ from conftest import BASELINE_RULES, ROOT
 
 SH = shutil.which("sh")
 
+# ci_review.sh runs on GitLab's Linux runners. Windows has no POSIX sh by default;
+# scripts/local_pipeline.py covers the same logic there.
+pytestmark = pytest.mark.skipif(SH is None, reason="needs a POSIX sh (not available on this machine)")
+
 
 def _git(cwd, *args):
     subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
