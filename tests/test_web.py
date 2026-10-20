@@ -176,6 +176,7 @@ def test_page_is_interactive_but_csp_blocks_inline_script(server):
     code, hdr, js = get(server + "/lab.js")
     assert code == 200 and b"textContent" in js and b"innerHTML" not in js
     assert b"AKIAABCDEFGHIJKLMNOP" not in js           # the fake key is assembled at run time
+    assert b"function showError" in js and b"Cannot run this" in js   # errors appear beside the buttons
     assert b"validity.badInput" in js                  # text in a number box is reported, not ignored
 
 

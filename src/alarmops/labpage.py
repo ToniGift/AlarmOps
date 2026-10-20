@@ -70,12 +70,19 @@ LAB_JS = r"""
   function busy(on) { buttons.forEach(function (b) { b.disabled = on; }); }
   function show(text) { term.textContent = text; }
   function clearVerdict() { banner.textContent = ""; banner.className = "banner"; pills.textContent = ""; }
+  // errors go next to the buttons (not only in the panel further down) so they are not missed
+  function showError(message) {
+    pills.textContent = "";
+    banner.textContent = "Cannot run this: " + message;
+    banner.className = "banner blocked";
+    show("error: " + message);
+  }
 
   function call(url, opts) {
     busy(true);
     return fetch(url, opts).then(function (r) {
       return r.json().then(function (j) { if (!r.ok) { throw new Error(j.error || r.statusText); } return j; });
-    }).catch(function (e) { clearVerdict(); show("error: " + e.message); return null; })
+    }).catch(function (e) { showError(e.message); return null; })
       .then(function (j) { busy(false); return j; });
   }
 
@@ -115,7 +122,7 @@ LAB_JS = r"""
 
   $("run-compare").onclick = function () {
     var bad = firstBadField();
-    if (bad) { clearVerdict(); show("error: " + bad + " must be a number"); return; }
+    if (bad) { showError(bad + " must be a number"); return; }
     call("/api/lab/compare?" + query()).then(function (r) {
       if (!r) { return; }
       show(r.output);
