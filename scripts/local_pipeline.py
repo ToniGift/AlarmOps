@@ -23,7 +23,8 @@ OUT = ROOT / "out"
 LOG_DIR = OUT / "local"
 SCRIPTS = ROOT / "scripts"
 MARKERS = ("GATE: FAIL", "  - ", "BLOCKED", "INVALID", "promotion blocked",
-           "VALIDATION: FAIL", "[FAIL]", "error:", "FAILED", "failed")
+           "VALIDATION: FAIL", "[FAIL]", "error:", "FAILED", "failed", "(value not printed)")
+SUMMARY_PREFIXES = ("GATE:", "VALIDATION:", "MONITOR:", "OK:", "staged", "secret_guard:", "wrote")
 
 
 @dataclass
@@ -65,10 +66,13 @@ def default_base_ref() -> str:
 def _highlights(text: str, failed: bool) -> str:
     lines = [l.rstrip() for l in text.splitlines() if l.strip()]
     if not lines:
-        return ""
+        return "done"
     if failed:
         picked = [l.strip() for l in lines if any(m in l for m in MARKERS)]
         return " | ".join(dict.fromkeys(picked[:4])) or lines[-1].strip()
+    for l in lines:
+        if l.strip().startswith(SUMMARY_PREFIXES) or "passed" in l:
+            return l.strip()
     return lines[-1].strip()
 
 
