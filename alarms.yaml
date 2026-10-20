@@ -5,8 +5,8 @@ tags:
     unit: percent
     low_low: 10
     low: 20
-    high: 80
-    high_high: 90
+    high: 88
+    high_high: 95
     deadband: 2
     delay_samples: 3
   pump_pressure:
