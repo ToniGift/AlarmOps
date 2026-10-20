@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 from conftest import BASELINE_RULES, ROOT
@@ -27,7 +28,11 @@ def repo(tmp_path):
     shutil.copy(BASELINE_RULES, tmp_path / "alarms.yaml")   # frozen baseline, not the live file
     shim = tmp_path / "bin"
     shim.mkdir()
-    (shim / "python").symlink_to(sys.executable)
+    # A wrapper script, not a symlink: creating symlinks needs admin rights on Windows.
+    wrapper = shim / "python"
+    exe = Path(sys.executable).as_posix()
+    wrapper.write_text(f'#!/bin/sh\nexec "{exe}" "$@"\n', newline="\n")
+    wrapper.chmod(0o755)
     _git(tmp_path, "init", "-q")
     _git(tmp_path, "config", "user.name", "t")
     _git(tmp_path, "config", "user.email", "t@example.invalid")
