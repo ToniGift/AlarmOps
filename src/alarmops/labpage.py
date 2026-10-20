@@ -49,6 +49,11 @@ def render_lab(rep: dict) -> str:
 <div class="cta"><button class="btn" id="run-compare" type="button">Run the checks</button>
 <button class="btn ghost" id="run-baseline" type="button">Replay the current limits</button></div>
 <div class="verdict" id="verdict"><span class="lamp"></span><div id="banner" aria-live="polite">Waiting for a run.</div></div>
+<dl class="readouts" id="lab-readouts" hidden>
+<div><dt>Faults noticed</dt><dd id="ro-detect">-</dd></div>
+<div><dt>False alarms</dt><dd id="ro-false">-</dd></div>
+</dl>
+<p class="hint" id="ro-help" hidden>A false alarm is an alarm that sounds when no hidden fault is happening. The numbers read: current limits, then your limits.</p>
 <div class="pills" id="pills" aria-label="Pipeline stages"></div>
 </div>
 
@@ -87,10 +92,11 @@ LAB_JS = r"""
     banner.textContent = text;
     verdict.className = "verdict" + (state ? " " + state : "");
   }
-  function clearVerdict() { pills.textContent = ""; setVerdict("Waiting for a run.", ""); }
+  function showReadouts(on) { $("lab-readouts").hidden = !on; $("ro-help").hidden = !on; }
+  function clearVerdict() { pills.textContent = ""; showReadouts(false); setVerdict("Waiting for a run.", ""); }
   // errors go next to the buttons (not only in the panel further down) so they are not missed
   function showError(message) {
-    pills.textContent = "";
+    pills.textContent = ""; showReadouts(false);
     setVerdict("Cannot run this: " + message, "bad");
     show("error: " + message);
   }
@@ -168,6 +174,12 @@ LAB_JS = r"""
                           : "Blocked. This change would not be merged.", r.passed ? "good" : "bad");
       drawStages(r.stages);
       updateChart(r);
+      $("ro-detect").textContent = r.base.faults_detected + " of " + r.base.faults_total + "  >  " +
+                                   r.head.faults_detected + " of " + r.head.faults_total;
+      $("ro-false").textContent = r.base.false_alarm_count + "  >  " + r.head.false_alarm_count;
+      $("ro-false").className = r.head.false_alarm_count > r.base.false_alarm_count ? "worse" : "";
+      $("ro-detect").className = r.head.faults_detected < r.base.faults_detected ? "worse" : "";
+      showReadouts(true);
     });
   };
   $("run-baseline").onclick = function () {
@@ -181,7 +193,7 @@ LAB_JS = r"""
       if (!r) { return; }
       show(r.output);
       setVerdict(r.blocked ? "Blocked by the security check." : "Nothing suspicious found.", r.blocked ? "bad" : "good");
-      pills.textContent = "";
+      pills.textContent = ""; showReadouts(false);
     });
   };
   $("scan-example").onclick = function () {

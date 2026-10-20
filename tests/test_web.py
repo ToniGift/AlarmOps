@@ -212,3 +212,14 @@ def test_monitor_api_returns_the_numbers_the_screen_shows(server, report):
         assert round(r["recent_per_hour"], 2) == round(m["recent_per_hour"], 2)
         assert round(r["threshold"], 2) == round(m["threshold"], 2)
     assert b"mon-run-" in get(server + "/lab.js")[2]
+
+
+def test_lab_shows_false_alarms_prominently(server):
+    code, hdr, js = get(server + "/lab.js")
+    assert b'ro-false' in js and b"false_alarm_count" in js
+    page = get(server + "/")[2].decode()
+    assert 'id="lab-readouts"' in page and "A false alarm is an alarm that sounds when no hidden fault" in page
+    # a limit set far too tight is noticed as false alarms, not as lost detection
+    code, r = lab_get(server, "/api/lab/compare?tank_high=56&tank_high_high=88&deadband=0&delay_samples=1")
+    assert code == 200 and not r["passed"]
+    assert r["head"]["false_alarm_count"] > r["base"]["false_alarm_count"] and r["head"]["faults_detected"] == r["base"]["faults_detected"]

@@ -183,6 +183,8 @@ dl.readouts{display:grid;grid-template-columns:repeat(3,1fr);margin:12px 0 0;bor
 dl.readouts div{padding:10px 12px 0 0}
 dl.readouts dt{font:600 .68rem/1.2 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
 dl.readouts dd{margin:4px 0 0;font:700 1.35rem/1.1 var(--mono)}
+dl.readouts dd.worse{color:var(--red)}
+dl.readouts[hidden],.hint[hidden]{display:none}
 #mon-diag{margin:18px 0 6px;min-height:90px}
 details{border:1px solid var(--line);background:var(--panel);padding:12px 16px;margin-top:14px}
 summary{cursor:pointer;font:700 .8rem/1.2 var(--head);letter-spacing:.1em;text-transform:uppercase}
