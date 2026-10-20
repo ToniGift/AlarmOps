@@ -4,6 +4,8 @@ from __future__ import annotations
 from html import escape
 from typing import Any
 
+from .labpage import LAB_CSS, render_lab
+
 CSS = """
 :root{--bg:#fafaf7;--fg:#1f2430;--mute:#5b6270;--card:#fff;--line:#e2e4ea;--ok:#1b7f4b;--bad:#b3261e;--warn:#9a6700;--accent:#2f5bd8}
 @media (prefers-color-scheme:dark){:root{--bg:#14161c;--fg:#e8eaf0;--mute:#a0a6b4;--card:#1c1f27;--line:#2c303b;--ok:#52c98b;--bad:#ff8a80;--warn:#e3b341;--accent:#8aa4ff}}
@@ -103,7 +105,7 @@ def _card_c(rep: dict) -> str:
 <p class="verdict {'passed' if ok else 'blocked'}">{verdict}</p></div>"""
 
 
-def render_explainer(rep: dict[str, Any]) -> str:
+def render_explainer(rep: dict[str, Any], interactive: bool = False) -> str:
     base, gate = rep["baseline"], rep["gate"]
     steps = "".join(
         f'<li class="{"human" if name == "Human approval" else ""}"><b>{escape(name)}</b><br>'
@@ -114,7 +116,7 @@ def render_explainer(rep: dict[str, Any]) -> str:
     a = rep["scenarios"]["a"]
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AlarmOps explained</title><style>{CSS}</style></head><body><main>
+<title>AlarmOps explained</title><style>{CSS}{LAB_CSS if interactive else ''}</style></head><body><main>
 <h1>AlarmOps</h1>
 <p class="lead">Before anyone changes a safety alarm, this system measures what the change would do, and a person approves only the final step.</p>
 <div class="sim"><b>This is a simulation.</b> It uses made-up sensor readings. It is not connected to any real plant or equipment.</div>
@@ -137,6 +139,7 @@ The tank chart below shows the real simulated data. Shaded bands are the hidden 
 <div class="cards">{_card_a(rep)}{_card_b()}{_card_c(rep)}</div>
 <p class="mute">Figures come from replaying the data on each version of the rules, every time this page is built. None are typed in by hand.</p>
 
+{render_lab(rep) if interactive else ''}
 <h2>What this is not</h2>
 <ul><li>It is a <b>simulation</b>, not a product for real plants.</li>
 <li>The mapping to industry standards (ISA-18.2, IEC 62443) is a <b>reference, not a certification</b>.</li>

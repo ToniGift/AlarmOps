@@ -48,7 +48,8 @@ def build_report(root: Path = ROOT) -> dict[str, Any]:
     base = replay(base_text)
     out: dict[str, Any] = {"baseline": _headline(base), "per_tag": base["per_tag"], "scenarios": {}}
     tank = load_rules_text(base_text)["tank_level"]
-    out["tank"] = {"high": tank.high, "high_high": tank.high_high, "unit": tank.unit}
+    out["tank"] = {"low_low": tank.low_low, "low": tank.low, "high": tank.high, "high_high": tank.high_high,
+                   "deadband": tank.deadband, "delay_samples": tank.delay_samples, "unit": tank.unit}
     out["gate"] = gate
 
     for key, (hi, hh) in (("a", CHANGE_A), ("c", CHANGE_C)):

@@ -8,7 +8,7 @@ COPY requirements.txt pyproject.toml ./
 COPY src ./src
 RUN pip install --no-cache-dir -r requirements.txt && pip install --no-cache-dir .
 COPY alarms.yaml gate.yaml ./
-COPY data/replay.csv data/faults.csv ./data/
+COPY data/replay.csv data/faults.csv data/post_deploy_alarm_log_healthy.csv data/post_deploy_alarm_log_drift.csv ./data/
 RUN useradd --create-home appuser
 USER appuser
 EXPOSE 8080

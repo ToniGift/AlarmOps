@@ -5,7 +5,6 @@ Complements GitLab Secret Detection (the real scanner); it exists so the demo
 block is deterministic. Scans git-tracked text files. Add `alarmops: allow-secret`
 on a line to allow it. Exit 1 if anything is found.
 """
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -13,15 +12,9 @@ from pathlib import Path
 import _common  # noqa: F401
 from _common import ROOT
 
-PATTERNS = {
-    "AWS access key id": re.compile(r"AKIA[0-9A-Z]{16}"),
-    "private key block": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----"),
-    "GitLab personal access token": re.compile(r"glpat-[0-9A-Za-z_\-]{20,}"),
-    "hard-coded credential": re.compile(
-        r"""(?i)\b(password|passwd|secret|api[_-]?key|token)\b\s*[:=]\s*["'][^"'\s]{8,}["']"""),
-}
+from alarmops.secretscan import ALLOW, PATTERNS  # noqa: F401
+
 SKIP_DIRS = ("tests/", "data/")
-ALLOW = "alarmops: allow-secret"
 
 
 def tracked_files() -> list[str]:

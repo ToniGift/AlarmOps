@@ -1,31 +1,46 @@
-"""Tiny read-only web front for the live deployment (Cloud Run). SIMULATION ONLY.
+"""Small web front for the live deployment (Cloud Run). SIMULATION ONLY.
 
-    GET /          the plain-English explainer page
-    GET /api/replay measured replay results as JSON (summary; no raw series)
-    GET /healthz   health check
+    GET  /                     the plain-English explainer page, with an interactive lab
+    GET  /api/replay           measured replay results as JSON (summary; no raw series)
+    GET  /api/lab/baseline     replay the current rules
+    GET  /api/lab/compare?...  replay edited tank limits and apply the gate
+    GET  /api/lab/monitor?log= drift check on a bundled simulated log
+    POST /api/lab/scan         scan pasted text for credentials (never echoed back)
+    GET  /healthz              health check
 
-The results are computed once at start-up from the committed dataset. The server takes
-no input, writes nothing, and uses only the standard library.
+The lab runs a fixed set of safe functions: no shell, no file access beyond the bundled
+data. Inputs are range-checked, request bodies are capped, work is concurrency-limited,
+and nothing is stored. Standard library only.
 """
 from __future__ import annotations
 
 import json
 import os
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qsl, urlsplit
 
 from .explainer import render_explainer
+from .lab import MAX_TEXT, Lab, LabError
+from .labpage import LAB_JS
 from .scenarios import build_report
 
 HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "no-referrer",
-    "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:",
+    "Content-Security-Policy": (
+        "default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; connect-src 'self'; "
+        "img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"),
     "Cache-Control": "no-store",
 }
+MAX_BODY = MAX_TEXT * 4 + 100     # JSON escaping can inflate the text; cap before reading
 
 
-def make_handler(report: dict):
-    page = render_explainer(report).encode("utf-8")
+def make_handler(report: dict, lab: Lab | None = None):
+    lab = lab or Lab()
+    slots = threading.BoundedSemaphore(8)          # at most 8 lab runs at once
+    page = render_explainer(report, interactive=True).encode("utf-8")
+    js = LAB_JS.encode("utf-8")
     api = {k: v for k, v in report.items() if k not in ("series", "tank_faults")}
     api_body = (json.dumps(api, indent=2) + "\n").encode("utf-8")
     health = b'{"status":"ok","simulation":true}\n'
@@ -44,14 +59,37 @@ def make_handler(report: dict):
             if not head_only:
                 self.wfile.write(body)
 
+        def _json(self, code: int, obj: dict):
+            self._send(code, (json.dumps(obj) + "\n").encode("utf-8"), "application/json")
+
+        def _lab(self, fn, *args):
+            if not slots.acquire(blocking=False):
+                return self._json(503, {"error": "busy, try again in a moment"})
+            try:
+                self._json(200, fn(*args))
+            except LabError as exc:
+                self._json(400, {"error": str(exc)})
+            finally:
+                slots.release()
+
         def _route(self, head_only: bool):
-            path = self.path.split("?", 1)[0]
+            parts = urlsplit(self.path)
+            path = parts.path
+            q = dict(parse_qsl(parts.query, keep_blank_values=True)[:20])
             if path in ("/", "/index.html"):
                 self._send(200, page, "text/html; charset=utf-8", head_only)
+            elif path == "/lab.js":
+                self._send(200, js, "text/javascript; charset=utf-8", head_only)
             elif path == "/api/replay":
                 self._send(200, api_body, "application/json", head_only)
             elif path == "/healthz":
                 self._send(200, health, "application/json", head_only)
+            elif path == "/api/lab/baseline" and not head_only:
+                self._lab(lab.baseline)
+            elif path == "/api/lab/compare" and not head_only:
+                self._lab(lab.compare, q)
+            elif path == "/api/lab/monitor" and not head_only:
+                self._lab(lab.monitor, q.get("log", ""))
             else:
                 self._send(404, b"not found\n", "text/plain; charset=utf-8", head_only)
 
@@ -61,12 +99,27 @@ def make_handler(report: dict):
         def do_HEAD(self):
             self._route(True)
 
+        def do_POST(self):
+            if urlsplit(self.path).path != "/api/lab/scan":
+                return self._reject()
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = -1
+            if not 0 < length <= MAX_BODY:
+                return self._json(400, {"error": "request body missing or too large"})
+            try:
+                text = json.loads(self.rfile.read(length)).get("text", "")
+            except (ValueError, AttributeError):
+                return self._json(400, {"error": 'body must be JSON like {"text": "..."}'})
+            self._lab(lab.scan, text)
+
         def _reject(self):
-            self._send(405, b"read-only service\n", "text/plain; charset=utf-8")
+            self._send(405, b"method not allowed\n", "text/plain; charset=utf-8")
 
-        do_POST = do_PUT = do_DELETE = do_PATCH = _reject
+        do_PUT = do_DELETE = do_PATCH = _reject
 
-        def log_message(self, fmt, *args):   # one line per request on stderr (Cloud Run logs)
+        def log_message(self, fmt, *args):   # request lines only (Cloud Run logs); bodies are never logged
             super().log_message(fmt, *args)
 
     return Handler

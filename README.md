@@ -141,9 +141,12 @@ python data/generate_dataset.py                          # regenerate the (seede
 
 ## Google Cloud (optional bonus: public live deployment)
 
-The container serves a read-only web page (`/`, a plain-English explanation built from measured
-results), a JSON API (`/api/replay`) and a health check (`/healthz`). It takes no input and
-writes nothing. A static copy of the page is in [`docs/explainer.html`](docs/explainer.html).
+The container serves a web page (`/`, a plain-English explanation built from measured results),
+a JSON API (`/api/replay`) and a health check (`/healthz`). The page has a **"Try it yourself" lab**:
+edit the tank limits and run the real replay and gate, scan pasted text for credentials, and run the
+monitor on a healthy or drifting simulated log. The lab calls a fixed set of safe functions: it never
+runs a shell, stores nothing, caps inputs and concurrency, and never echoes scanned text back.
+A static copy of the page (no lab) is in [`docs/explainer.html`](docs/explainer.html).
 
 Run it locally:
 
