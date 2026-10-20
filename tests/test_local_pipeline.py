@@ -16,7 +16,7 @@ def test_demo_branches_behave_as_designed(tmp_path):
     repo = tmp_path / "repo"
     repo.mkdir()
     for item in ("scripts", "src", "data", "tests", "gate.yaml", "pyproject.toml",
-                 "requirements.txt", "requirements-dev.txt", ".gitignore", ".gitlab-ci.yml"):
+                 "requirements.txt", "requirements-dev.txt", ".gitignore", ".gitlab-ci.yml", "cloud"):
         src = ROOT / item
         if src.is_dir():
             shutil.copytree(src, repo / item, ignore=shutil.ignore_patterns(

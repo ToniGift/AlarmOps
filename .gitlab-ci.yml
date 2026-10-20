@@ -222,6 +222,25 @@ deploy_production:                  # the single human gate (Supervised autonomy
       - deploy/production/manifest.json
   # TODO: protect the `production` environment in Settings > CI/CD > Protected environments.
 
+# Optional bonus: public live deployment on Google Cloud Run, only after the human approval.
+# CI/CD variables (Settings > CI/CD > Variables), all masked/protected, NEVER committed:
+#   GCP_PROJECT_ID, GCP_REGION, and GCP_SA_KEY (type "File": a service-account key with
+#   Cloud Run Admin, Cloud Build Editor, Service Account User, Storage Admin on the project).
+# TODO: prefer Workload Identity Federation over a key file once confirmed for this project.
+deploy_cloud_run:
+  stage: approve
+  image: google/cloud-sdk:slim
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "schedule" && $GCP_PROJECT_ID
+      when: manual
+  allow_failure: true               # optional bonus: never blocks the pipeline
+  needs: [deploy_production]        # only after a human approved the release
+  environment:
+    name: cloud-run-public
+  script:
+    - gcloud auth activate-service-account --key-file="$GCP_SA_KEY"
+    - sh cloud/cloudrun_deploy.sh
+
 # ------------------------------------------------------------- monitor
 monitor_alarm_rate:
   stage: monitor

@@ -139,6 +139,34 @@ python data/generate_dataset.py                          # regenerate the (seede
 `.gitlab-ci.yml` runs on GitLab's shared runners. `demo-change-b` contains a deliberately
 **fake** credential and must never be merged.
 
+## Google Cloud (optional bonus: public live deployment)
+
+The container serves a read-only web page (`/`, a plain-English explanation built from measured
+results), a JSON API (`/api/replay`) and a health check (`/healthz`). It takes no input and
+writes nothing. A static copy of the page is in [`docs/explainer.html`](docs/explainer.html).
+
+Run it locally:
+
+```bash
+docker build -t alarmops:local .
+docker run --rm -p 8080:8080 alarmops:local        # open http://localhost:8080
+# no Docker:  PYTHONPATH=src python -m alarmops.web   (PORT=8080 by default)
+```
+
+Deploy to Cloud Run (you need your own Google Cloud project with billing; the free tier is enough):
+
+```bash
+gcloud auth login
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
+export GCP_PROJECT_ID=<your-project-id> GCP_REGION=europe-west1
+sh cloud/cloudrun_deploy.sh                        # prints the public URL and checks /healthz
+```
+
+In GitLab, the manual `deploy_cloud_run` job (after the production approval) does the same when
+`GCP_PROJECT_ID`, `GCP_REGION` and a file-type `GCP_SA_KEY` CI variable are set. Never commit the key.
+Status: the container and web app are tested locally; the Cloud Run deployment itself has not been
+run from this repository yet. Put the public URL here once it is live: TODO.
+
 ## How the measurement works
 
 - A labelled fault counts as **detected** if an alarm for that tag *starts* between the fault's
@@ -158,7 +186,8 @@ python data/generate_dataset.py                          # regenerate the (seede
 
 - Simulation only. No real plant connection, no real operator workflow.
 - Deployment is simulated: a "release" is `alarms.yaml` plus a hashed manifest, verified before
-  promotion. A Dockerfile is included but the Google Cloud deployment is not implemented.
+  promotion. The Google Cloud Run deployment code is included (`cloud/`), but it is only
+  "live" once you have deployed it to your own Google Cloud project (see below).
 - The ISA-18.2 / IEC 62443 table in each change record is a **reference mapping, not a
   certification**. Clause numbers are intentionally omitted.
 - Scanner availability depends on the GitLab tier. Secret Detection is enabled;
@@ -169,7 +198,9 @@ python data/generate_dataset.py                          # regenerate the (seede
 
 ```
 alarms.yaml, gate.yaml       rules under change control, and the gate thresholds
-src/alarmops/                rules loader, alarm engine, replay harness, gate, deploy logic
+src/alarmops/                rules loader, alarm engine, replay harness, gate, deploy logic, web front
+cloud/                       Google Cloud Run deploy script
+docs/explainer.html          plain-English page (regenerate: python scripts/build_explainer.py)
 scripts/                     CI job scripts, local pipeline runner, demo branch tooling
 data/                        seeded dataset, labelled faults, simulated post-deploy logs
 tests/                       unit and end-to-end tests (frozen baseline fixtures)

@@ -44,7 +44,7 @@ PyYAML, pytest, CycloneDX, Docker.
 - [ ] YouTube video URL (public, under 3 minutes)
 - [ ] Text description (above)
 - [ ] Path: **A: Start Fresh**; autonomy level: **Supervised**
-- [ ] Optional: Google Cloud link (not implemented; skip)
+- [ ] Optional bonus: public Cloud Run URL (deploy with `cloud/cloudrun_deploy.sh`; add the URL to the README and Devpost; skip if not live)
 - [ ] Optional: Most Environmentally Impactful opt-in (not pursued; skip)
 
 ## By-hand checklist

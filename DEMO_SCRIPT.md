@@ -31,7 +31,7 @@ before recording; if anything differs, say what you see, not what is written her
 - Do not claim real-plant safety, certification or compliance. The standards table is a
   reference mapping.
 - Do not claim a Duo flow does something it did not do on screen.
-- Do not claim Google Cloud deployment (it is not implemented).
+- Do not claim a Google Cloud deployment unless the public Cloud Run URL is live and you show it on screen.
 
 ## After recording
 

@@ -8,12 +8,13 @@
 The credential in B is FAKE and exists only on that branch. Never merge it.
 """
 import argparse
-import re
 import subprocess
 import sys
 
 import _common  # noqa: F401
 from _common import ROOT
+
+from alarmops.scenarios import CHANGE_A, CHANGE_C, set_tank_limits_text
 
 RULES = ROOT / "alarms.yaml"
 
@@ -27,17 +28,14 @@ def git(*args, check=True):
 
 def set_tank(high, high_high):
     """Edit the FIRST tag in alarms.yaml (tank_level)."""
-    text = RULES.read_text()
-    for key, val in (("high_high", high_high), ("high", high)):
-        pattern = rf"(?m)^([ \t]+){key}: [\d.]+[ \t]*$"
-        text, n = re.subn(pattern, rf"\g<1>{key}: {val}", text, count=1)
-        if n != 1:
-            sys.exit(f"could not find '{key}' in alarms.yaml")
-    RULES.write_text(text)
+    try:
+        RULES.write_text(set_tank_limits_text(RULES.read_text(), high, high_high))
+    except ValueError as exc:
+        sys.exit(str(exc))
 
 
 def change_a():
-    set_tank(88, 95)          # widened: real faults between 80 and 88 are no longer caught
+    set_tank(*CHANGE_A)       # widened: real faults between 80 and 88 are no longer caught
 
 
 def change_b():
@@ -46,7 +44,7 @@ def change_b():
 
 
 def change_c():
-    set_tank(75, 88)          # tightened: still catches every labelled fault
+    set_tank(*CHANGE_C)       # tightened: still catches every labelled fault
 
 
 BRANCHES = [
