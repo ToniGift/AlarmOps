@@ -104,7 +104,18 @@ LAB_JS = r"""
     clearVerdict(); show("Reset to the current limits.");
   };
 
+  // a number box holding text reads as "" in the browser, so say so instead of silently using defaults
+  function firstBadField() {
+    for (var i = 0; i < ids.length; i++) {
+      var el = $(ids[i]);
+      if (el.value === "" || el.validity.badInput) { return el.parentNode.firstChild.textContent; }
+    }
+    return null;
+  }
+
   $("run-compare").onclick = function () {
+    var bad = firstBadField();
+    if (bad) { clearVerdict(); show("error: " + bad + " must be a number"); return; }
     call("/api/lab/compare?" + query()).then(function (r) {
       if (!r) { return; }
       show(r.output);
