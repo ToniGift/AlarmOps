@@ -82,12 +82,12 @@ def build(out_dir: Path, seed: int = SEED, n: int = N_SAMPLES) -> None:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     with open(out_dir / "replay.csv", "w", newline="") as fh:
-        w = csv.writer(fh)
+        w = csv.writer(fh, lineterminator="\n")
         w.writerow(["t", *TAGS])
         for t in range(n):
             w.writerow([t, *(f"{series[tag][t]:.4f}" for tag in TAGS)])
     with open(out_dir / "faults.csv", "w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=["fault_id", "tag", "type", "direction", "start", "end"])
+        w = csv.DictWriter(fh, fieldnames=["fault_id", "tag", "type", "direction", "start", "end"], lineterminator="\n")
         w.writeheader()
         w.writerows(sorted(faults, key=lambda f: (f["start"], f["tag"])))
 
@@ -96,7 +96,7 @@ def build(out_dir: Path, seed: int = SEED, n: int = N_SAMPLES) -> None:
     for name, drifting in (("healthy", False), ("drift", True)):
         r = random.Random(seed + (1 if drifting else 0))
         with open(out_dir / f"post_deploy_alarm_log_{name}.csv", "w", newline="") as fh:
-            w = csv.writer(fh)
+            w = csv.writer(fh, lineterminator="\n")
             w.writerow(["hour", *TAGS])
             for h in range(hours):
                 row = []

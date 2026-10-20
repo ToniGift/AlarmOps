@@ -55,7 +55,9 @@ def load_faults(path: str | Path) -> list[Fault]:
 
 
 def _sha256(path: str | Path) -> str:
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16]
+    """Short content hash that ignores CRLF vs LF, so it is the same on every OS."""
+    data = Path(path).read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(data).hexdigest()[:16]
 
 
 def run_replay(
