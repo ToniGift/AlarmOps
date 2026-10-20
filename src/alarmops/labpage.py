@@ -3,59 +3,76 @@ from __future__ import annotations
 
 from html import escape
 
-LAB_CSS = """
-.lab{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
-.lab h3{margin:.2em 0 .4em;font-size:1.05rem}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:8px 0}
-.row label{display:flex;flex-direction:column;font-size:.85rem;color:var(--mute)}
-.row input{width:96px;padding:6px 8px;font:inherit;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
-textarea{width:100%;min-height:70px;padding:8px;font:14px/1.4 ui-monospace,Consolas,monospace;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg)}
-button{font:inherit;padding:7px 12px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:6px;cursor:pointer}
-button.alt{background:transparent;color:var(--accent)}button:disabled{opacity:.5;cursor:wait}
-pre.term{background:#0e1116;color:#d6deeb;padding:12px;border-radius:8px;overflow:auto;font:13px/1.45 ui-monospace,Consolas,monospace;min-height:120px;white-space:pre-wrap;margin:10px 0 0}
-.pills{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}.pill{font-size:.8rem;padding:3px 9px;border-radius:99px;border:1px solid var(--line)}
-.pill.pass{border-color:var(--ok);color:var(--ok)}.pill.fail{border-color:var(--bad);color:var(--bad)}.pill.manual{border-color:var(--warn);color:var(--warn)}
-.pill.skipped,.pill.gitlab{color:var(--mute)}.banner{font-weight:700;margin:8px 0 0}
-"""
+HELP = {
+    "tank_low_low": "Very low: the level is dangerously low (percent).",
+    "tank_low": "Low: the level is getting low (percent).",
+    "tank_high": "High: the level is getting too full (percent).",
+    "tank_high_high": "Very high: the level is dangerously full (percent).",
+    "deadband": "How far the level must come back before the alarm clears, so it does not flicker.",
+    "delay_samples": "How many readings in a row must be past the limit before the alarm sounds.",
+}
 
 
 def render_lab(rep: dict) -> str:
     t, a, c = rep["tank"], rep["scenarios"]["a"], rep["scenarios"]["c"]
 
     def field(fid: str, label: str, value) -> str:
-        return (f'<label>{escape(label)}<input id="{fid}" type="number" step="any" '
-                f'value="{escape(format(value, "g"))}" data-default="{escape(format(value, "g"))}"></label>')
+        v = escape(format(value, "g"))
+        return (f'<label title="{escape(HELP[fid])}">{escape(label)}'
+                f'<input id="{fid}" type="number" step="any" value="{v}" data-default="{v}"></label>')
 
-    return f"""<h2>Try it yourself</h2>
-<p>These buttons run the real AlarmOps code on the server, on the same simulated data. The panel prints what the command line would print.
-The website cannot run anything else, and it stores nothing you type.</p>
+    return f"""<section id="try">
+<div class="wrap">
+<div class="sectionhead"><p class="kicker">03 / Try it yourself</p><h2>Break an alarm limit. Watch it get caught.</h2>
+<p class="mute">These buttons run the real AlarmOps code on the server, on the same simulated data. The black panel prints what the command line would print. The site runs only this fixed set of checks and stores nothing you type.</p></div>
 <div class="lab" id="lab" data-a-high="{a['high']:g}" data-a-hh="{a['high_high']:g}" data-c-high="{c['high']:g}" data-c-hh="{c['high_high']:g}">
-<h3>1. Change a limit and run the pipeline checks</h3>
-<p class="mute">Edit the tank's alarm limits (percent), or pick a ready-made change.</p>
-<div class="row">
-{field('tank_low_low', 'low-low', t['low_low'])}{field('tank_low', 'low', t['low'])}
-{field('tank_high', 'high', t['high'])}{field('tank_high_high', 'high-high', t['high_high'])}
-{field('deadband', 'deadband', t['deadband'])}{field('delay_samples', 'delay (samples)', t['delay_samples'])}
+<div class="labsteps">
+<div><b>STEP 1</b>Pick a ready-made change, or type your own limits for the tank.</div>
+<div><b>STEP 2</b>Press <i>Run the checks</i>. The server replays the hidden faults on your limits.</div>
+<div><b>STEP 3</b>Read the verdict and the pipeline lights. The chart above also updates.</div>
 </div>
-<div class="row">
-<button id="run-compare">Run the checks</button>
-<button class="alt" id="preset-a">Load change A (loosen)</button>
-<button class="alt" id="preset-c">Load change C (tighten)</button>
-<button class="alt" id="preset-reset">Reset</button>
-<button class="alt" id="run-baseline">Replay current limits</button>
+<div class="labbody">
+<div class="group">
+<h3>Tank alarm limits</h3>
+<div class="chips" role="group" aria-label="Ready-made changes">
+<button class="chip" id="preset-a" type="button">Load change A: loosen</button>
+<button class="chip" id="preset-c" type="button">Load change C: tighten</button>
+<button class="chip" id="preset-reset" type="button">Reset</button>
 </div>
-<div id="banner" class="banner" aria-live="polite"></div>
-<div id="pills" class="pills"></div>
-
-<h3 style="margin-top:1.2em">2. Scan some text for passwords and keys</h3>
-<textarea id="scan-text" maxlength="4000" aria-label="Text to scan" placeholder="Paste a config snippet here. Nothing is stored or shown back."></textarea>
-<div class="row"><button id="run-scan">Run the secret scan</button><button class="alt" id="scan-example">Insert a fake example key</button></div>
-
-<h3>3. Watch the alarm rate after a release</h3>
-<div class="row"><button id="mon-healthy" class="alt">Healthy log</button><button id="mon-drift" class="alt">Drifting log</button></div>
-
-<pre class="term" id="term" aria-live="polite">Pick a button above. Results appear here.</pre>
-<p class="mute">Stages marked "GitLab only" are not run by this website; they run in the real pipeline.</p>
+<div class="fields">
+{field('tank_low_low', 'very low', t['low_low'])}{field('tank_low', 'low', t['low'])}
+{field('tank_high', 'high', t['high'])}{field('tank_high_high', 'very high', t['high_high'])}
+{field('deadband', 'deadband', t['deadband'])}{field('delay_samples', 'delay (readings)', t['delay_samples'])}
 </div>
+<p class="hint">Limits go in order: very low, then low, then high, then very high. Hover a box for what it means.</p>
+<div class="cta"><button class="btn" id="run-compare" type="button">Run the checks</button>
+<button class="btn ghost" id="run-baseline" type="button">Replay the current limits</button></div>
+<div class="verdict" id="verdict"><span class="lamp"></span><div id="banner" aria-live="polite">Waiting for a run.</div></div>
+<div class="pills" id="pills" aria-label="Pipeline stages"></div>
+</div>
+
+<div class="group">
+<h3>Scan text for passwords and keys</h3>
+<p class="small mute">This is change B. Paste a config snippet, or use the fake example key.</p>
+<textarea id="scan-text" maxlength="4000" aria-label="Text to scan" placeholder="Paste text here. Nothing is stored or shown back."></textarea>
+<div class="chips"><button class="chip" id="scan-example" type="button">Insert a fake example key</button>
+<button class="btn" id="run-scan" type="button">Run the secret scan</button></div>
+</div>
+
+<div class="group">
+<h3>Watch the alarm rate after a release</h3>
+<p class="small mute">The monitor compares the alarms per hour now with the quiet period before.</p>
+<div class="chips"><button class="chip" id="mon-healthy" type="button">Healthy log</button>
+<button class="chip" id="mon-drift" type="button">Drifting log</button></div>
+</div>
+
+<div><h3>What the command line would print</h3>
+<pre class="term" id="term" aria-live="polite">Pick something above. Results appear here.</pre>
+<p class="hint">Stages marked "GitLab only" are not run by this website; they run in the real pipeline.</p></div>
+</div>
+</div>
+</div>
+</section>
 <script src="/lab.js" defer></script>
 """
 
@@ -63,18 +80,23 @@ The website cannot run anything else, and it stores nothing you type.</p>
 LAB_JS = r"""
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var term = $("term"), banner = $("banner"), pills = $("pills"), lab = $("lab");
+  var lab = $("lab");
+  if (!lab) { return; }
+  var term = $("term"), banner = $("banner"), verdict = $("verdict"), pills = $("pills");
   var ids = ["tank_low_low", "tank_low", "tank_high", "tank_high_high", "deadband", "delay_samples"];
   var buttons = lab.querySelectorAll("button");
 
   function busy(on) { buttons.forEach(function (b) { b.disabled = on; }); }
   function show(text) { term.textContent = text; }
-  function clearVerdict() { banner.textContent = ""; banner.className = "banner"; pills.textContent = ""; }
+  function setVerdict(text, state) {
+    banner.textContent = text;
+    verdict.className = "verdict" + (state ? " " + state : "");
+  }
+  function clearVerdict() { pills.textContent = ""; setVerdict("Waiting for a run.", ""); }
   // errors go next to the buttons (not only in the panel further down) so they are not missed
   function showError(message) {
     pills.textContent = "";
-    banner.textContent = "Cannot run this: " + message;
-    banner.className = "banner blocked";
+    setVerdict("Cannot run this: " + message, "bad");
     show("error: " + message);
   }
 
@@ -95,11 +117,32 @@ LAB_JS = r"""
     stages.forEach(function (s) {
       var p = document.createElement("span");
       p.className = "pill " + s.status;
-      var label = s.status === "gitlab" ? "GitLab only" : s.status;
-      p.textContent = s.stage + ": " + label;
-      p.title = s.job + " - " + s.detail;
+      p.textContent = s.stage.replace("_", " ") + " - " + (s.status === "gitlab" ? "GitLab only" : s.status);
+      p.title = s.job + ": " + s.detail;
       pills.appendChild(p);
     });
+  }
+
+  // the trend chart: move the "your limit" line and recolour the faults that would be missed
+  function updateChart(r) {
+    var chart = $("chart");
+    if (!chart) { return; }
+    var top = +chart.dataset.yTop, bottom = +chart.dataset.yBottom, ymax = +chart.dataset.ymax;
+    var y = bottom - (bottom - top) * r.limits.high / ymax;
+    var line = $("limit-user"), label = $("limit-user-label");
+    line.setAttribute("y1", y); line.setAttribute("y2", y);
+    label.setAttribute("y", y < top + 16 ? y + 15 : y - 6);
+    label.textContent = "your high limit (" + r.limits.high + ")";
+    Object.keys(r.tank_detected).forEach(function (id) {
+      var b = $("band-" + id);
+      if (b) { b.setAttribute("class", "band " + (r.tank_detected[id] ? "ok" : "missed")); }
+    });
+    var note = $("chart-note");
+    if (note) {
+      var n = r.newly_missed.length;
+      note.textContent = n === 0 ? "With your limits, every tank fault in this chart is still noticed."
+                                 : "With your limits, " + n + " tank fault" + (n === 1 ? "" : "s") + " would go unnoticed (hatched red).";
+    }
   }
 
   function setLimits(high, hh) { $("tank_high").value = high; $("tank_high_high").value = hh; }
@@ -126,10 +169,10 @@ LAB_JS = r"""
     call("/api/lab/compare?" + query()).then(function (r) {
       if (!r) { return; }
       show(r.output);
-      banner.textContent = r.passed ? "PASSES the review gate. It would continue to the human approval step."
-                                    : "BLOCKED. The change would not be merged.";
-      banner.className = "banner " + (r.passed ? "passed" : "blocked");
+      setVerdict(r.passed ? "Passes the review gate. It would go on to a human approval."
+                          : "Blocked. This change would not be merged.", r.passed ? "good" : "bad");
       drawStages(r.stages);
+      updateChart(r);
     });
   };
   $("run-baseline").onclick = function () {
@@ -142,8 +185,7 @@ LAB_JS = r"""
     }).then(function (r) {
       if (!r) { return; }
       show(r.output);
-      banner.textContent = r.blocked ? "BLOCKED by the security check." : "Nothing suspicious found.";
-      banner.className = "banner " + (r.blocked ? "blocked" : "passed");
+      setVerdict(r.blocked ? "Blocked by the security check." : "Nothing suspicious found.", r.blocked ? "bad" : "good");
       pills.textContent = "";
     });
   };
@@ -156,10 +198,37 @@ LAB_JS = r"""
       call("/api/lab/monitor?log=" + name).then(function (r) {
         if (!r) { return; }
         show(r.output); pills.textContent = "";
-        banner.textContent = r.drift ? "DRIFT detected. In GitLab this opens an issue." : "No drift.";
-        banner.className = "banner " + (r.drift ? "blocked" : "passed");
+        setVerdict(r.drift ? "Drift detected. In GitLab this opens an issue." : "No drift. Alarm rate is normal.",
+                   r.drift ? "bad" : "good");
       });
     };
   });
+
+  // the three status tiles at the top open the lab with that change already running
+  document.querySelectorAll("a.tile[data-load]").forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      e.preventDefault();
+      $("try").scrollIntoView();
+      var which = a.dataset.load;
+      if (which === "a") { $("preset-a").click(); $("run-compare").click(); }
+      else if (which === "c") { $("preset-c").click(); $("run-compare").click(); }
+      else { $("scan-example").click(); $("run-scan").click(); }
+    });
+  });
+
+  // highlight the navbar link of the section being read
+  var links = {};
+  document.querySelectorAll(".links a").forEach(function (a) { links[a.getAttribute("href").slice(1)] = a; });
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting && links[en.target.id]) {
+          Object.keys(links).forEach(function (k) { links[k].classList.remove("on"); });
+          links[en.target.id].classList.add("on");
+        }
+      });
+    }, { rootMargin: "-35% 0px -60% 0px" });
+    Object.keys(links).forEach(function (id) { var s = $(id); if (s) { io.observe(s); } });
+  }
 })();
 """

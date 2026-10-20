@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .gate import evaluate, load_gate
+from .monitoring import analyse, load_log
 from .replay import load_dataset, load_faults, run_replay
 from .rules import load_rules_text
 
@@ -69,5 +70,15 @@ def build_report(root: Path = ROOT) -> dict[str, Any]:
          "detected": f["detected"]}
         for f in base["faults"] if f["tag"] == "tank_level"
     ]
+    # hourly alarm totals of the two simulated post-deploy logs, for the alarm-rate graphs
+    out["monitor"] = {}
+    for name in ("healthy", "drift"):
+        tags, rows = load_log(root / "data" / f"post_deploy_alarm_log_{name}.csv")
+        res = analyse(tags, rows, 24, 6, 2.0, 2.0)
+        out["monitor"][name] = {
+            "hourly": [sum(r.values()) for r in rows], "baseline_hours": 24, "recent_hours": 6,
+            "baseline_per_hour": res["baseline_per_hour"], "recent_per_hour": res["recent_per_hour"],
+            "threshold": res["threshold"], "drift": res["drift"],
+        }
     out["meta"] = {**base["meta"], "simulation": True}
     return out

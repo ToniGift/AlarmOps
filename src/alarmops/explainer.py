@@ -1,42 +1,35 @@
-"""Render the plain-English explainer page from measured results (see scenarios.build_report)."""
+"""Render the AlarmOps page from measured results (see scenarios.build_report).
+
+interactive=False gives a static page (docs/explainer.html, no scripts).
+interactive=True adds the lab and the live chart (served by web.py).
+"""
 from __future__ import annotations
 
 from html import escape
 from typing import Any
 
-from .labpage import LAB_CSS, render_lab
+from .labpage import render_lab
+from .theme import CSS
 
-CSS = """
-:root{--bg:#fafaf7;--fg:#1f2430;--mute:#5b6270;--card:#fff;--line:#e2e4ea;--ok:#1b7f4b;--bad:#b3261e;--warn:#9a6700;--accent:#2f5bd8}
-@media (prefers-color-scheme:dark){:root{--bg:#14161c;--fg:#e8eaf0;--mute:#a0a6b4;--card:#1c1f27;--line:#2c303b;--ok:#52c98b;--bad:#ff8a80;--warn:#e3b341;--accent:#8aa4ff}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-main{max-width:920px;margin:0 auto;padding:24px 16px 64px}h1{font-size:2rem;margin:.2em 0}h2{margin:1.8em 0 .4em;font-size:1.35rem}
-.sim{background:var(--card);border:1px solid var(--warn);border-left:6px solid var(--warn);padding:10px 14px;border-radius:8px;margin:16px 0}
-.lead{font-size:1.15rem;color:var(--mute)}
-.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;list-style:none;padding:0;counter-reset:s}
-.steps li{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;counter-increment:s;font-size:.95rem}
-.steps li::before{content:counter(s);display:inline-block;width:1.5em;height:1.5em;line-height:1.5em;text-align:center;border-radius:50%;background:var(--accent);color:#fff;margin-right:.5em;font-size:.8rem}
-.steps li.human{border:2px solid var(--warn)}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
-.card h3{margin:.1em 0 .3em;font-size:1.05rem}.verdict{font-weight:700;margin:.5em 0}
-.blocked{color:var(--bad)}.passed{color:var(--ok)}.big{font-size:1.6rem;font-weight:700}
-.mute{color:var(--mute);font-size:.92rem}svg{width:100%;height:auto;background:var(--card);border:1px solid var(--line);border-radius:10px}
-details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-top:12px}
-table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;font-size:.95rem}
-code{font-size:.9em}
-"""
-
-STAGES = [
+STEPS = [
     ("Plan", "Check the change is well-formed."),
-    ("Review", "Replay simulated faults on the old and new limits, and compare."),
+    ("Review", "Replay hidden faults on the old and new limits. Compare."),
     ("Test", "Run the automatic tests."),
     ("Security", "Scan for passwords and keys saved in the code."),
-    ("Compliance", "Write the change record and a parts list (SBOM)."),
-    ("Deploy to staging", "Release to a practice environment."),
+    ("Compliance", "Write the change record and a parts list."),
+    ("Staging", "Release to a practice environment."),
     ("Validate", "Check the practice release works."),
-    ("Human approval", "A person decides. This is the only manual step."),
-    ("Monitor", "Watch alarm counts after release and open an issue if they drift."),
+    ("Approval", "The one manual step. A named person says yes."),
+    ("Monitor", "Watch alarm counts after release. Open an issue if they drift."),
+]
+
+WORDS = [
+    ("Alarm limit", "The number at which the control system warns an operator, such as a tank being 80% full."),
+    ("Fault", "Something going wrong in the process: a sudden spike, a slow drift, or a sensor stuck on one value."),
+    ("Detection rate", "Of the faults we hid in the data, how many the alarms noticed."),
+    ("False alarm", "An alarm that sounds when nothing is wrong. Too many and operators stop listening."),
+    ("Deadband and delay", "Two settings that stop alarms from flickering: how far the value must recover, and how many readings in a row must break the limit."),
+    ("Gate", "The pass or fail rule. A change that loses too much detection is blocked."),
 ]
 
 
@@ -45,113 +38,204 @@ def _pct(x: float) -> str:
 
 
 def chart_svg(rep: dict[str, Any]) -> str:
-    """Tank level over time, with the labelled faults and the old and widened limits."""
+    """Tank level over time with the hidden faults. Faults the loosened limit (change A) would
+    miss are hatched red; the lab redraws this live."""
     t, y = rep["series"]["t"], rep["series"]["tank_level"]
     n = max(t) or 1
-    w, h, pad = 900, 280, 36
-    ymax = max(100.0, max(y))
-    sx = lambda v: pad + (w - 2 * pad) * v / n
-    sy = lambda v: h - pad - (h - 2 * pad) * v / ymax
-    pts = " ".join(f"{sx(t[i]):.1f},{sy(y[i]):.1f}" for i in range(0, len(t), 4))
-    base_hi = rep["tank"]["high"]
-    a = rep["scenarios"]["a"]
+    w, h, left, right, top, bottom = 960, 330, 52, 16, 16, 36
+    ymax = 100.0
+    sx = lambda v: left + (w - left - right) * v / n
+    sy = lambda v: top + (h - top - bottom) * (1 - v / ymax)
+    grid = "".join(
+        f'<line class="gridline" x1="{left}" x2="{w - right}" y1="{sy(v):.1f}" y2="{sy(v):.1f}"/>'
+        f'<text x="{left - 8}" y="{sy(v) + 4:.1f}" text-anchor="end">{v}%</text>' for v in range(0, 101, 20))
+    xticks = "".join(
+        f'<text x="{sx(v):.1f}" y="{h - 12}" text-anchor="middle">{v}</text>' for v in range(0, n + 1, 1000))
+    pts = " ".join(f"{sx(t[i]):.1f},{sy(min(y[i], ymax)):.1f}" for i in range(0, len(t), 4))
+    cur, a = rep["tank"]["high"], rep["scenarios"]["a"]
     missed = {m["fault_id"] for m in a["newly_missed"]}
-    bands = []
-    for f in rep["tank_faults"]:
-        x0, x1 = sx(f["start"]), max(sx(f["end"]), sx(f["start"]) + 4)
-        colour = "#b3261e" if f["fault_id"] in missed else "#2f5bd8"
-        bands.append(f'<rect x="{x0:.1f}" y="{pad}" width="{x1 - x0:.1f}" height="{h - 2 * pad}" '
-                     f'fill="{colour}" opacity="0.22"/>')
-    return f"""<svg viewBox="0 0 {w} {h}" role="img" aria-label="Tank level over time with injected faults, the current high limit and a widened limit">
-{''.join(bands)}
-<polyline points="{pts}" fill="none" stroke="#6b7280" stroke-width="1"/>
-<line x1="{pad}" x2="{w - pad}" y1="{sy(base_hi):.1f}" y2="{sy(base_hi):.1f}" stroke="#1b7f4b" stroke-width="2"/>
-<text x="{w - pad - 4}" y="{sy(base_hi) + 17:.1f}" text-anchor="end" font-size="13" fill="#1b7f4b">current high limit ({base_hi:g})</text>
-<line x1="{pad}" x2="{w - pad}" y1="{sy(a['high']):.1f}" y2="{sy(a['high']):.1f}" stroke="#b3261e" stroke-width="2" stroke-dasharray="7 5"/>
-<text x="{w - pad - 4}" y="{sy(a['high']) - 5:.1f}" text-anchor="end" font-size="13" fill="#b3261e">widened limit ({a['high']:g})</text>
-<text x="{pad}" y="{h - 8}" font-size="12" fill="#6b7280">time (simulated samples)</text>
-<text x="{pad}" y="{pad - 10}" font-size="12" fill="#6b7280">tank level (%)</text>
+    bands = "".join(
+        f'<rect id="band-{escape(f["fault_id"])}" class="band {"missed" if f["fault_id"] in missed else "ok"}" '
+        f'x="{sx(f["start"]):.1f}" y="{top}" width="{max(sx(f["end"]) - sx(f["start"]), 4):.1f}" '
+        f'height="{h - top - bottom}"><title>{escape(f["type"])} fault {escape(f["fault_id"])}</title></rect>'
+        for f in rep["tank_faults"])
+    ya = sy(a["high"])
+    return f"""<svg id="chart" class="chart" viewBox="0 0 {w} {h}" role="img"
+ aria-label="Tank level over time. Shaded bands are hidden faults. Hatched red bands would be missed by a loosened limit."
+ data-y-top="{top}" data-y-bottom="{h - bottom}" data-ymax="{ymax:g}">
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<line x1="0" y1="0" x2="0" y2="7" style="stroke:var(--red)" stroke-width="3"/></pattern></defs>
+{grid}{xticks}{bands}
+<polyline class="trace" points="{pts}"/>
+<line class="lim-now" x1="{left}" x2="{w - right}" y1="{sy(cur):.1f}" y2="{sy(cur):.1f}"/>
+<text class="lbl-now" x="{w - right - 6}" y="{sy(cur) + 16:.1f}" text-anchor="end">current high limit ({cur:g})</text>
+<line id="limit-user" class="lim-user" x1="{left}" x2="{w - right}" y1="{ya:.1f}" y2="{ya:.1f}"/>
+<text id="limit-user-label" class="lbl-user" x="{w - right - 6}" y="{ya - 6:.1f}" text-anchor="end">loosened limit, change A ({a['high']:g})</text>
+<text x="{w - right}" y="{h - 12}" text-anchor="end" style="font-size:10px">time, in simulated readings</text>
 </svg>"""
 
 
-def _card_a(rep: dict) -> str:
-    a, b = rep["scenarios"]["a"], rep["baseline"]
-    verdict = "BLOCKED" if a["blocked"] else "Allowed"
-    cls = "blocked" if a["blocked"] else "passed"
-    missed = len(a["newly_missed"])
-    return f"""<div class="card"><h3>Change A: someone loosens a limit</h3>
-<p>The tank's "too full" alarm is moved from {rep['tank']['high']:g}% up to {a['high']:g}%.</p>
-<p class="big">{b['faults_detected']} of {b['faults_total']} <span class="mute">before</span><br>{a['faults_detected']} of {a['faults_total']} <span class="mute">after</span></p>
-<p>Simulated faults the system notices. After the change it would have missed {missed} more.</p>
-<p class="verdict {cls}">{verdict} before it could ship.</p></div>"""
+def sparkline(m: dict[str, Any], name: str) -> str:
+    w, h, pad = 300, 96, 10
+    vals = m["hourly"]
+    ymax = max(max(vals), m["threshold"]) * 1.15 or 1
+    sx = lambda i: pad + (w - 2 * pad) * i / (len(vals) - 1)
+    sy = lambda v: h - 18 - (h - 18 - pad) * v / ymax
+    pts = " ".join(f"{sx(i):.1f},{sy(v):.1f}" for i, v in enumerate(vals))
+    x0 = sx(len(vals) - m["recent_hours"])
+    th = sy(m["threshold"])
+    cls = "s drift" if m["drift"] else "s"
+    return f"""<svg class="spark" viewBox="0 0 {w} {h}" role="img" aria-label="Alarms per hour over {len(vals)} hours, {name} log">
+<rect class="rc" x="{x0:.1f}" y="{pad}" width="{w - pad - x0:.1f}" height="{h - 18 - pad}"/>
+<line class="th" x1="{pad}" x2="{w - pad}" y1="{th:.1f}" y2="{th:.1f}"/>
+<polyline class="{cls}" points="{pts}"/>
+<text x="{pad}" y="{h - 4}">{len(vals)} hours</text>
+<text x="{w - pad}" y="{th - 4:.1f}" text-anchor="end">drift limit {m['threshold']:.1f}/h</text></svg>"""
 
 
-def _card_b() -> str:
-    return """<div class="card"><h3>Change B: a password is saved in the code</h3>
-<p>Someone commits a key that gives access to a cloud account. (The key in the demo is fake.)</p>
-<p class="big">Not a limit change</p>
-<p>It is not about alarms, so there is no detection figure. A scanner looks for secrets in every change.</p>
-<p class="verdict blocked">BLOCKED by the security check.</p></div>"""
-
-
-def _card_c(rep: dict) -> str:
-    c = rep["scenarios"]["c"]
-    ok = not c["blocked"]
-    verdict = "Passes every check and waits for a person to approve it." if ok else "BLOCKED."
-    return f"""<div class="card"><h3>Change C: a safe tightening</h3>
-<p>The "too full" alarm is moved from {rep['tank']['high']:g}% down to {c['high']:g}%, so it speaks up earlier.</p>
-<p class="big">{c['faults_detected']} of {c['faults_total']}</p>
-<p>Simulated faults noticed, with {c['false_alarm_count']} false alarms.</p>
-<p class="verdict {'passed' if ok else 'blocked'}">{verdict}</p></div>"""
+def _tile(kind: str, label: str, title: str, detail: str, href: str, load: str) -> str:
+    return (f'<a class="tile {kind}" href="{href}" data-load="{load}"><span class="lamp"></span>'
+            f'<span class="t1">{escape(label)}</span><span class="t2">{escape(title)}</span>'
+            f'<span class="t3">{escape(detail)}</span></a>')
 
 
 def render_explainer(rep: dict[str, Any], interactive: bool = False) -> str:
     base, gate = rep["baseline"], rep["gate"]
+    a, c = rep["scenarios"]["a"], rep["scenarios"]["c"]
+    try_href = "#try" if interactive else "#results"
+
+    tiles = (
+        _tile("bad" if a["blocked"] else "good", "Change A / loosen a limit", "Blocked" if a["blocked"] else "Allowed",
+              f"notices {a['faults_detected']} of {a['faults_total']} faults, was {base['faults_detected']}", try_href, "a")
+        + _tile("bad", "Change B / password in code", "Blocked", "the secret scan stops it", try_href, "b")
+        + _tile("bad" if c["blocked"] else "good", "Change C / safe tightening",
+                "Blocked" if c["blocked"] else "Ready",
+                f"notices {c['faults_detected']} of {c['faults_total']}; waits for a person", try_href, "c"))
+
     steps = "".join(
-        f'<li class="{"human" if name == "Human approval" else ""}"><b>{escape(name)}</b><br>'
-        f'<span class="mute">{escape(text)}</span></li>' for name, text in STAGES)
+        f'<li class="{"human" if name == "Approval" else ""}"><b>{escape(name)}</b><span>{escape(text)}</span></li>'
+        for name, text in STEPS)
+    words = "".join(f"<div><dt>{escape(k)}</dt><dd>{escape(v)}</dd></div>" for k, v in WORDS)
     tag_rows = "".join(
-        f"<tr><td>{escape(tag)}</td><td>{v['faults_detected']} / {v['faults_total']}</td>"
-        f"<td>{v['false_alarms']}</td></tr>" for tag, v in rep["per_tag"].items())
-    a = rep["scenarios"]["a"]
+        f"<tr><td>{escape(tag)}</td><td>{v['faults_detected']} / {v['faults_total']}</td><td>{v['false_alarms']}</td></tr>"
+        for tag, v in rep["per_tag"].items())
+
+    def result_cell(code: str, title: str, body: str, readout: str, small: str, stamp: str, kind: str) -> str:
+        return (f'<div class="cell"><span class="id">CHANGE {code}</span><h3>{escape(title)}</h3><p class="small mute">{body}</p>'
+                f'<div class="readout">{readout}<br><small>{small}</small></div>'
+                f'<span class="stamp {kind}">{escape(stamp)}</span></div>')
+
+    cells = (
+        result_cell("A", "Loosen a limit",
+                    f"The tank's \"too full\" alarm moves from {rep['tank']['high']:g}% up to {a['high']:g}%.",
+                    f"{a['faults_detected']} of {a['faults_total']}",
+                    f"faults noticed (before: {base['faults_detected']} of {base['faults_total']})",
+                    "Blocked" if a["blocked"] else "Allowed", "bad" if a["blocked"] else "good")
+        + result_cell("B", "A password in the code",
+                      "Someone commits a key that unlocks a cloud account. The key in the demo is fake.",
+                      "Not a limit change", "so there is no detection figure",
+                      "Blocked by the secret scan", "bad")
+        + result_cell("C", "A safe tightening",
+                      f"The alarm moves from {rep['tank']['high']:g}% down to {c['high']:g}%, so it speaks up earlier.",
+                      f"{c['faults_detected']} of {c['faults_total']}",
+                      f"faults noticed, {c['false_alarm_count']} false alarms",
+                      "Ready for a person" if not c["blocked"] else "Blocked", "good" if not c["blocked"] else "bad"))
+
+    mon = rep["monitor"]
+    nav_try = '<a href="#try">Try it</a>' if interactive else ""
+    lab = render_lab(rep) if interactive else ""
+    chart_note = ('<p class="hint" id="chart-note">Showing change A: the loosened limit would leave '
+                  f'{len(a["newly_missed"])} tank faults unnoticed (hatched red). Run the lab below to try your own.</p>'
+                  if interactive else
+                  f'<p class="hint">Showing change A: the loosened limit would leave {len(a["newly_missed"])} tank faults unnoticed (hatched red).</p>')
+    cta_try = ('<a class="btn" href="#try">Try it yourself</a>' if interactive
+               else '<a class="btn" href="#results">See the results</a>')
+
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AlarmOps explained</title><style>{CSS}{LAB_CSS if interactive else ''}</style></head><body><main>
-<h1>AlarmOps</h1>
-<p class="lead">Before anyone changes a safety alarm, this system measures what the change would do, and a person approves only the final step.</p>
-<div class="sim"><b>This is a simulation.</b> It uses made-up sensor readings. It is not connected to any real plant or equipment.</div>
+<title>AlarmOps: measure every alarm-limit change</title>
+<meta name="description" content="A simulation that measures what a change to an industrial alarm limit would do before it ships.">
+<style>{CSS}</style></head><body id="top">
+<div class="stripe"></div>
+<header class="nav"><div class="wrap">
+<a class="brand" href="#top"><span class="glyph"><i></i><i></i><i></i><i></i></span>ALARMOPS</a>
+<nav class="links" aria-label="Sections"><a href="#problem">Problem</a><a href="#how">How it works</a>{nav_try}<a href="#results">Results</a><a href="#limits">Limits</a></nav>
+<span class="simtag">SIMULATION</span>
+</div></header>
 
-<h2>The problem</h2>
-<p>In a factory, an <b>alarm limit</b> is the number at which the control system warns an operator. For example: "tell someone if the tank is more than 80% full."
-Over the years people edit these numbers. If a limit is loosened by mistake, a real problem can happen with <b>no warning at all</b>. If it is tightened too far, operators drown in false alarms and start ignoring them.
-Today these edits are usually checked by eye, and nobody measures what they really do.</p>
+<main>
+<div class="wrap hero">
+<div>
+<p class="kicker">Alarm-limit change control</p>
+<h1>Measure the change before it ships.</h1>
+<p class="lead">AlarmOps checks every edit to a plant's alarm settings. It replays known faults against the new settings, shows what would be missed, and leaves the final yes to a person.</p>
+<div class="cta">{cta_try}<a class="btn ghost" href="#how">How it works</a></div>
+<p class="small mute">Everything here is simulated. No real plant is connected.</p>
+</div>
+<div class="panel" aria-label="Status of the three demo changes">
+<div class="panelhead">Change status panel{" / click a tile" if interactive else ""}</div>
+{tiles}
+</div>
+</div>
 
-<h2>What AlarmOps does</h2>
-<p>Every proposed change goes through nine automatic steps. Only one needs a human.</p>
-<ol class="steps">{steps}</ol>
-
-<h2>See it in action</h2>
-<p>We made up {base['faults_total']} faults (sudden spikes, slow drifts, stuck readings) and hid them in simulated sensor data.
-The tank chart below shows the real simulated data. Shaded bands are the hidden faults. The red bands are the ones a <b>widened limit would miss</b>.</p>
+<section id="problem"><div class="wrap">
+<div class="sectionhead"><p class="kicker">01 / The problem</p><h2>A loosened limit fails silently</h2></div>
+<div class="two">
+<div>
+<p>In a factory, an <b>alarm limit</b> is the number at which the control system warns an operator. Over the years people edit these numbers.</p>
+<p>Loosen a limit by mistake and a real problem can happen with <b>no warning at all</b>. Tighten it too far and operators drown in false alarms and start ignoring them.</p>
+<div class="callout">Today these edits are mostly checked by eye. Nobody measures what they really do, and nobody watches the alarm rate afterwards.</div>
+</div>
+<div><p class="kicker" style="margin-bottom:0">Words used on this page</p><dl class="words">{words}</dl></div>
+</div>
+<figure style="margin-top:34px">
 {chart_svg(rep)}
-<p class="mute">Green line: the current limit. Red dashed line: the loosened limit from change A. Red bands: faults that would go unnoticed.</p>
+<figcaption class="legend"><span class="k-now">current high limit</span><span class="k-user">a limit that was loosened</span><span class="k-ok">hidden fault, noticed</span><span class="k-miss">hidden fault, missed</span></figcaption>
+{chart_note}
+</figure>
+<p class="small mute">What you are looking at: a simulated tank level over time. We hid {base['faults_total']} faults in the data (this chart shows the tank's). The grey trace is the level, the bands are the faults. A limit set too high lets some faults pass unnoticed.</p>
+</div></section>
 
-<div class="cards">{_card_a(rep)}{_card_b()}{_card_c(rep)}</div>
-<p class="mute">Figures come from replaying the data on each version of the rules, every time this page is built. None are typed in by hand.</p>
+<section id="how"><div class="wrap">
+<div class="sectionhead"><p class="kicker">02 / How it works</p><h2>Nine automatic steps, one human</h2>
+<p class="mute">Every proposed change runs this line. It stops at the first step that fails. Only the approval is manual.</p></div>
+<ol class="rail">{steps}</ol>
+</div></section>
 
-{render_lab(rep) if interactive else ''}
-<h2>What this is not</h2>
-<ul><li>It is a <b>simulation</b>, not a product for real plants.</li>
-<li>The mapping to industry standards (ISA-18.2, IEC 62443) is a <b>reference, not a certification</b>.</li>
-<li>The pass/fail thresholds are choices for this demo, not an industry standard.</li></ul>
+{lab}
 
-<details><summary>For engineers</summary>
-<p>Baseline: {base['faults_detected']}/{base['faults_total']} faults detected, {base['false_alarm_count']} false alarms.
-Gate: at least {_pct(gate['min_detection_rate'])} detection, drop of at most {_pct(gate['max_detection_rate_drop'])} versus the target branch,
-at most {int(gate['max_false_alarms'])} false alarms, at most {int(gate['max_false_alarm_increase'])} added.</p>
-<table><tr><th>Tag</th><th>Faults detected</th><th>False alarms</th></tr>{tag_rows}</table>
-<p>Change A ({escape(', '.join(a['violations']) or 'no violations')}).</p>
-<p>A fault counts as detected when an alarm for its tag starts between the fault's start and {rep['meta']['detection_window_samples']} samples after its end.
-JSON: <a href="/api/replay"><code>/api/replay</code></a>. Source: MIT licensed.</p></details>
-</main></body></html>
+<section id="results"><div class="wrap">
+<div class="sectionhead"><p class="kicker">04 / Results</p><h2>Measured, not claimed</h2>
+<p class="mute">The figures come from replaying the simulated data on each version of the rules, every time this page is built. None are typed in by hand.</p></div>
+<div class="grid3">{cells}</div>
+
+<div class="two" style="margin-top:36px">
+<div><h3>After release</h3><p class="small mute">A monitor compares alarms per hour now with the quiet period before. A healthy log stays under the limit; the drifting one breaks it.</p>
+<div class="two" style="gap:14px">
+<div><p class="small mute" style="margin:0 0 4px">HEALTHY</p>{sparkline(mon['healthy'], 'healthy')}</div>
+<div><p class="small mute" style="margin:0 0 4px">DRIFTING</p>{sparkline(mon['drift'], 'drifting')}</div>
+</div></div>
+<div><h3>Baseline by tag</h3><table><tr><th>Tag</th><th>Faults noticed</th><th>False alarms</th></tr>{tag_rows}</table>
+<p class="small mute">Baseline overall: {base['faults_detected']} of {base['faults_total']} noticed, {base['false_alarm_count']} false alarms.</p></div>
+</div>
+
+<details><summary>How the pass or fail is decided</summary>
+<p>A change passes if it keeps at least {_pct(gate['min_detection_rate'])} detection, loses no more than {_pct(gate['max_detection_rate_drop'])} compared with the current rules,
+causes at most {int(gate['max_false_alarms'])} false alarms, and adds at most {int(gate['max_false_alarm_increase'])}.
+A fault counts as noticed when an alarm for its tag starts between the fault's start and {rep['meta']['detection_window_samples']} readings after its end.
+These thresholds are choices for this demo, not an industry standard. Raw numbers: <a href="/api/replay"><code>/api/replay</code></a>.</p></details>
+</div></section>
+
+<section id="limits"><div class="wrap">
+<div class="sectionhead"><p class="kicker">05 / What this is not</p><h2>Honest limits</h2></div>
+<div class="limits">
+<div><b>A simulation</b>The sensor data is made up and the deployment is simulated. It is not connected to any real plant or equipment.</div>
+<div><b>Not a certification</b>The mapping to ISA-18.2 and IEC 62443 in each change record is a reference mapping. It is not a certificate or a compliance claim.</div>
+<div><b>Demo thresholds</b>The pass and fail numbers are policy choices made for this demo, not an industry standard.</div>
+</div>
+</div></section>
+</main>
+
+<footer><div class="wrap"><span>AlarmOps / MIT licence / (c) 2026 Anthony Afonughe</span><span>Simulation only. Built for the GitLab Transcend hackathon.</span></div></footer>
+</body></html>
 """

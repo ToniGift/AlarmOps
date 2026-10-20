@@ -152,6 +152,8 @@ class Lab:
             "newly_missed": [{k: f[k] for k in ("fault_id", "tag", "type", "start", "end")}
                              for f in res.newly_missed],
             "stages": stages,
+            # per tank fault: is it detected with these limits? (the page's chart uses this)
+            "tank_detected": {f["fault_id"]: f["detected"] for f in head["faults"] if f["tag"] == "tank_level"},
         }
         if len(self._cache) < 512:
             self._cache[key] = result
