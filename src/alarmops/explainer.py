@@ -164,7 +164,7 @@ def render_explainer(rep: dict[str, Any], interactive: bool = False) -> str:
 </div></header>
 
 <main>
-<div class="wrap hero">
+<div class="herobg"><div class="wrap hero">
 <div>
 <p class="kicker">Alarm-limit change control</p>
 <h1>Measure the change before it ships.</h1>
@@ -176,7 +176,7 @@ def render_explainer(rep: dict[str, Any], interactive: bool = False) -> str:
 <div class="panelhead">Change status panel{" / click a tile" if interactive else ""}</div>
 {tiles}
 </div>
-</div>
+</div></div>
 
 <section id="problem"><div class="wrap">
 <div class="sectionhead"><p class="kicker">01 / The problem</p><h2>A loosened limit fails silently</h2></div>

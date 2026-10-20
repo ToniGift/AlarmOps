@@ -32,6 +32,7 @@ def render_lab(rep: dict) -> str:
 <div><b>STEP 3</b>Read the verdict and the pipeline lights. The chart above also updates.</div>
 </div>
 <div class="labbody">
+<div class="labcol">
 <div class="group">
 <h3>Tank alarm limits</h3>
 <div class="chips" role="group" aria-label="Ready-made changes">
@@ -65,8 +66,9 @@ def render_lab(rep: dict) -> str:
 <div class="chips"><button class="chip" id="mon-healthy" type="button">Healthy log</button>
 <button class="chip" id="mon-drift" type="button">Drifting log</button></div>
 </div>
+</div>
 
-<div><h3>What the command line would print</h3>
+<div class="labout"><h3>What the command line would print</h3>
 <pre class="term" id="term" aria-live="polite">Pick something above. Results appear here.</pre>
 <p class="hint">Stages marked "GitLab only" are not run by this website; they run in the real pipeline.</p></div>
 </div>
