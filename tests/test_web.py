@@ -180,3 +180,11 @@ def test_page_is_interactive_but_csp_blocks_inline_script(server):
 
 def test_static_explainer_has_no_lab(report):
     assert 'id="lab"' not in render_explainer(report)
+
+
+def test_rejected_requests_with_a_body_still_get_their_response(server):
+    """Regression: a 405 sent without reading the body could surface as a reset connection."""
+    for _ in range(40):
+        assert get(server + "/api/lab/compare", "POST", b'{"x": 1}')[0] == 405
+        assert get(server + "/", "PUT", b"data")[0] == 405
+        assert get(server + "/api/lab/scan", "POST", b"not json")[0] == 400

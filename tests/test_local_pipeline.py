@@ -41,9 +41,10 @@ def test_demo_branches_behave_as_designed(tmp_path):
     assert demo.returncode == 0, demo.stdout + demo.stderr
 
     summary = demo.stdout.split("DEMO SUMMARY")[1]
+    full = demo.stdout       # shown by pytest when an assertion below fails
     line = lambda b: next(l for l in summary.splitlines() if l.startswith(b))
-    assert "BLOCKED" in line("demo-change-a") and "stage: review" in line("demo-change-a")
-    assert "BLOCKED" in line("demo-change-b") and "stage: security" in line("demo-change-b")
-    assert "WAITING FOR APPROVAL" in line("demo-change-c")
+    assert "BLOCKED" in line("demo-change-a") and "stage: review" in line("demo-change-a"), full
+    assert "BLOCKED" in line("demo-change-b") and "stage: security" in line("demo-change-b"), full
+    assert "WAITING FOR APPROVAL" in line("demo-change-c"), full
     assert re.search(r"detection 100\.0% -> 8\d\.\d%", summary)      # change A measured drop
     assert _git(repo, "branch", "--show-current").strip() == "main"  # always returns you home

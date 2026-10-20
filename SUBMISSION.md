@@ -19,7 +19,8 @@ too much detection is blocked, and the measured numbers are posted on the merge 
 Secret detection blocks hard-coded credentials. The pipeline then generates a change record and
 an SBOM, deploys to staging, validates the release, and waits for a human to approve production
 (Supervised autonomy). After deployment a monitor watches the alarm rate and opens an issue with
-a diagnosis when it drifts. <!-- Edit: describe each Duo flow that actually runs. -->
+a diagnosis when it drifts. A web page explains the system in plain English and has a "Try it yourself" lab where
+anyone can edit a limit and watch the real gate pass or block it. <!-- Edit: describe each Duo flow that actually runs. -->
 
 **How we used GitLab.** GitLab CI/CD for nine stages (plan, review, test, security, compliance,
 deploy_staging, validate, approve, monitor), GitLab Secret Detection, merge request comments,
@@ -72,6 +73,18 @@ PyYAML, pytest, CycloneDX, Docker.
 - [ ] Add a pipeline schedule for `monitor_alarm_rate` and run it once
 - [ ] Update the status column in `README.md` to match what really runs
 - [ ] Never merge `demo-change-b` (fake credential)
+
+### Google Cloud (optional bonus, up to +0.2)
+- [ ] Create a Google Cloud project with billing; add a budget alert
+- [ ] Install `gcloud`; `gcloud auth login`
+- [ ] `gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com`
+- [ ] `export GCP_PROJECT_ID=... GCP_REGION=europe-west1` then `sh cloud/cloudrun_deploy.sh`
+- [ ] Open the printed URL; try the lab; put the URL in `README.md` (TODO marker) and Devpost
+- [ ] Optional CI deploy: add CI variables `GCP_PROJECT_ID`, `GCP_REGION` and a File-type `GCP_SA_KEY`; never commit the key
+
+### Before recording or demoing locally
+- [ ] `python scripts/make_demo_branches.py --force` (the demo branches are copies of `main`; rebuild them whenever `main` changes)
+- [ ] `python scripts/local_demo.py` and wait for "Back on 'main'" before touching the folder
 
 ### Submit
 - [ ] Record the video (`DEMO_SCRIPT.md`), upload to YouTube as Public

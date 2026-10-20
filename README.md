@@ -109,12 +109,16 @@ python -m venv .venv
 source .venv/bin/activate              # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt && pip install -e .
 
-python -m pytest -q                    # unit and end-to-end tests
-python scripts/make_demo_branches.py   # creates demo-change-a / -b / -c
+python -m pytest -q                    # unit and end-to-end tests (about 45 s)
+python scripts/make_demo_branches.py --force   # (re)creates demo-change-a / -b / -c from the current branch
 python scripts/local_demo.py           # runs the pipeline on all three, prints a summary
+python -m alarmops.web                 # web page with the interactive lab: http://localhost:8080
 python scripts/local_pipeline.py       # runs it on your current branch
 ```
 
+The demo branches are copies of `main`, so rebuild them with `--force` whenever `main` changes, and
+wait for "Back on 'main'" before touching the folder (the runner switches branches).
+On Windows PowerShell, set `$env:PYTHONPATH = "src"` instead of `PYTHONPATH=src`, or run `pip install -e .`.
 Optional: `pip install cyclonedx-bom` enables the SBOM job locally.
 Per-job logs are written to `out/local/`.
 

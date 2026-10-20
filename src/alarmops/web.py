@@ -99,17 +99,27 @@ def make_handler(report: dict, lab: Lab | None = None):
         def do_HEAD(self):
             self._route(True)
 
-        def do_POST(self):
-            if urlsplit(self.path).path != "/api/lab/scan":
-                return self._reject()
+        def _body(self) -> bytes | None:
+            """Read the request body, or None if it is missing, malformed or too large.
+
+            A small body is always consumed before replying: closing a socket with unread
+            data can reset the connection on some platforms and hide the response."""
             try:
                 length = int(self.headers.get("Content-Length", "0"))
             except ValueError:
-                length = -1
+                return None
             if not 0 < length <= MAX_BODY:
+                return None
+            return self.rfile.read(length)
+
+        def do_POST(self):
+            body = self._body()
+            if urlsplit(self.path).path != "/api/lab/scan":
+                return self._reject()
+            if body is None:
                 return self._json(400, {"error": "request body missing or too large"})
             try:
-                text = json.loads(self.rfile.read(length)).get("text", "")
+                text = json.loads(body).get("text", "")
             except (ValueError, AttributeError):
                 return self._json(400, {"error": 'body must be JSON like {"text": "..."}'})
             self._lab(lab.scan, text)
@@ -117,7 +127,11 @@ def make_handler(report: dict, lab: Lab | None = None):
         def _reject(self):
             self._send(405, b"method not allowed\n", "text/plain; charset=utf-8")
 
-        do_PUT = do_DELETE = do_PATCH = _reject
+        def do_PUT(self):
+            self._body()
+            self._reject()
+
+        do_DELETE = do_PATCH = do_PUT
 
         def log_message(self, fmt, *args):   # request lines only (Cloud Run logs); bodies are never logged
             super().log_message(fmt, *args)
