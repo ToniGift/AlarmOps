@@ -1,4 +1,5 @@
 import pytest
+from conftest import BASELINE_RULES, ROOT
 from alarmops.rules import RulesError, load_rules, load_rules_text, parse_rules
 
 
@@ -8,10 +9,14 @@ def _tag(**over):
     return {"tags": {"t1": base}}
 
 
-def test_baseline_file_loads():
-    rules = load_rules("alarms.yaml")
-    assert set(rules) == {"tank_level", "pump_pressure", "flow_rate"}
-    assert rules["tank_level"].high == 80.0
+def test_live_rules_file_is_valid():
+    # Structure only: the live file legitimately changes with each limit change.
+    rules = load_rules(ROOT / "alarms.yaml")
+    assert {"tank_level", "pump_pressure", "flow_rate"} <= set(rules)
+
+
+def test_frozen_baseline_values():
+    assert load_rules(BASELINE_RULES)["tank_level"].high == 80.0
 
 
 def test_valid_rules_parse():

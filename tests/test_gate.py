@@ -2,23 +2,23 @@ from pathlib import Path
 
 import pytest
 import yaml
+from conftest import BASELINE_RULES, ROOT
 
 from alarmops.gate import GateError, evaluate, load_gate, render_markdown, MARKER
 from alarmops.replay import replay_files
 from alarmops.rules import parse_rules
 
-ROOT = Path(__file__).resolve().parents[1]
 
 
 def _head(**tank):
-    cfg = yaml.safe_load((ROOT / "alarms.yaml").read_text())
+    cfg = yaml.safe_load(BASELINE_RULES.read_text())
     cfg["tags"]["tank_level"].update(tank)
     return replay_files("x", rules=parse_rules(cfg))
 
 
 @pytest.fixture(scope="module")
 def base():
-    return replay_files(ROOT / "alarms.yaml")
+    return replay_files(BASELINE_RULES)
 
 
 @pytest.fixture(scope="module")
