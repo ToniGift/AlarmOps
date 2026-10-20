@@ -6,4 +6,4 @@
 - Every detection-rate / false-alarm number must be MEASURED by running the replay harness. Never hardcode or invent figures.
 - Do NOT invent GitLab Duo Agent Platform config syntax. Read the official docs; if unconfirmed, leave a TODO placeholder.
 - Keep it small. Commit locally; do not push unless asked.
-- Keep proprietary work (SentinelOT core code, Flasho) out of this repository.
+- Keep proprietary or unrelated work out of this repository.

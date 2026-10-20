@@ -82,7 +82,7 @@ PyYAML, pytest, CycloneDX, Docker.
 
 ## Rules to remember
 - The repo must stay public and open source (MIT) for judging.
-- Do not put SentinelOT core code or Flasho code in this repository. GitLab receives a license
+- Do not put proprietary or unrelated code in this repository. GitLab receives a license
   to use the submission.
 - All materials in English.
 - AI assistance is not mentioned in the rules either way; the README states it honestly.
