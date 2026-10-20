@@ -174,9 +174,9 @@ LAB_JS = r"""
                           : "Blocked. This change would not be merged.", r.passed ? "good" : "bad");
       drawStages(r.stages);
       updateChart(r);
-      $("ro-detect").textContent = r.base.faults_detected + " of " + r.base.faults_total + "  >  " +
+      $("ro-detect").textContent = r.base.faults_detected + " of " + r.base.faults_total + "  →  " +
                                    r.head.faults_detected + " of " + r.head.faults_total;
-      $("ro-false").textContent = r.base.false_alarm_count + "  >  " + r.head.false_alarm_count;
+      $("ro-false").textContent = r.base.false_alarm_count + "  →  " + r.head.false_alarm_count;
       $("ro-false").className = r.head.false_alarm_count > r.base.false_alarm_count ? "worse" : "";
       $("ro-detect").className = r.head.faults_detected < r.base.faults_detected ? "worse" : "";
       showReadouts(true);
