@@ -261,7 +261,7 @@
     "samples": 6000,
     "detection_window_samples": 20,
     "rules_file": "alarms.yaml",
-    "dataset_sha256_16": "56612cdab053f976",
-    "faults_sha256_16": "20a1de7f823c4ec7"
+    "dataset_sha256_16": "b78f859923620be9",
+    "faults_sha256_16": "9bb38e196563f242"
   }
 }
