@@ -157,7 +157,12 @@ def test_lab_scan_limits(server):
     assert post(server, json.dumps({"text": "a" * 5000}).encode())[0] == 400
     assert post(server, b"not json")[0] == 400
     assert post(server, b"")[0] == 400
-    assert post(server, b"x" * 50_000)[0] == 400
+    # an oversized body is rejected before it is read; depending on timing the client sees the
+    # 400 or the connection being reset, and both mean "rejected"
+    try:
+        assert post(server, b"x" * 50_000)[0] == 400
+    except (ConnectionError, urllib.error.URLError):
+        pass
     assert get(server + "/api/lab/scan", "POST", None)[0] == 400
     assert get(server + "/api/lab/compare", "POST", b"{}")[0] == 405
     assert get(server + "/api/lab/compare", "HEAD")[0] == 404
