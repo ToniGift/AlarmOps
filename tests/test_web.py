@@ -190,3 +190,25 @@ def test_rejected_requests_with_a_body_still_get_their_response(server):
         assert get(server + "/api/lab/compare", "POST", b'{"x": 1}')[0] == 405
         assert get(server + "/", "PUT", b"data")[0] == 405
         assert get(server + "/api/lab/scan", "POST", b"not json")[0] == 400
+
+
+def test_monitor_screen_interactive_and_static(report, server):
+    code, hdr, body = get(server + "/")
+    page = body.decode()
+    assert 'id="monitor"' in page and 'href="#monitor"' in page
+    assert 'id="mon-run-healthy"' in page and 'id="mon-run-drift"' in page and 'id="mon-diag"' in page
+    assert "NOT CHECKED" in page                       # nothing is claimed until the monitor is run
+    static = render_explainer(report)
+    assert 'id="monitor"' in static and "mon-run-" not in static
+    m = report["monitor"]
+    assert f"{m['drift']['recent_per_hour']:.2f} /h" in static and "DRIFT DETECTED" in static and "NORMAL" in static
+
+
+def test_monitor_api_returns_the_numbers_the_screen_shows(server, report):
+    for name in ("healthy", "drift"):
+        code, r = lab_get(server, f"/api/lab/monitor?log={name}")
+        m = report["monitor"][name]
+        assert code == 200 and r["drift"] == m["drift"]
+        assert round(r["recent_per_hour"], 2) == round(m["recent_per_hour"], 2)
+        assert round(r["threshold"], 2) == round(m["threshold"], 2)
+    assert b"mon-run-" in get(server + "/lab.js")[2]

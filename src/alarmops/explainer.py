@@ -76,21 +76,48 @@ def chart_svg(rep: dict[str, Any]) -> str:
 
 
 def sparkline(m: dict[str, Any], name: str) -> str:
-    w, h, pad = 300, 96, 10
+    """Alarms per hour over the logged hours, the drift limit, and the recent window the monitor checks."""
+    w, h, left, right, top, bottom = 560, 220, 40, 12, 14, 28
     vals = m["hourly"]
     ymax = max(max(vals), m["threshold"]) * 1.15 or 1
-    sx = lambda i: pad + (w - 2 * pad) * i / (len(vals) - 1)
-    sy = lambda v: h - 18 - (h - 18 - pad) * v / ymax
+    sx = lambda i: left + (w - left - right) * i / (len(vals) - 1)
+    sy = lambda v: h - bottom - (h - bottom - top) * v / ymax
     pts = " ".join(f"{sx(i):.1f},{sy(v):.1f}" for i, v in enumerate(vals))
     x0 = sx(len(vals) - m["recent_hours"])
     th = sy(m["threshold"])
     cls = "s drift" if m["drift"] else "s"
+    ticks = "".join(
+        f'<line class="gridline" x1="{left}" x2="{w - right}" y1="{sy(v):.1f}" y2="{sy(v):.1f}"/>'
+        f'<text x="{left - 6}" y="{sy(v) + 3:.1f}" text-anchor="end">{v:g}</text>'
+        for v in sorted({0, round(ymax / 2), round(ymax * 0.87)}) if v <= ymax)
     return f"""<svg class="spark" viewBox="0 0 {w} {h}" role="img" aria-label="Alarms per hour over {len(vals)} hours, {name} log">
-<rect class="rc" x="{x0:.1f}" y="{pad}" width="{w - pad - x0:.1f}" height="{h - 18 - pad}"/>
-<line class="th" x1="{pad}" x2="{w - pad}" y1="{th:.1f}" y2="{th:.1f}"/>
+{ticks}
+<rect class="rc" x="{x0:.1f}" y="{top}" width="{w - right - x0:.1f}" height="{h - bottom - top}"/>
+<line class="th" x1="{left}" x2="{w - right}" y1="{th:.1f}" y2="{th:.1f}"/>
 <polyline class="{cls}" points="{pts}"/>
-<text x="{pad}" y="{h - 4}">{len(vals)} hours</text>
-<text x="{w - pad}" y="{th - 4:.1f}" text-anchor="end">drift limit {m['threshold']:.1f}/h</text></svg>"""
+<text x="{left}" y="{h - 8}">0 h</text><text x="{w - right}" y="{h - 8}" text-anchor="end">{len(vals)} h</text>
+<text x="{left + 6}" y="{th - 5:.1f}">drift limit {m['threshold']:.1f}/h</text></svg>"""
+
+
+def monitor_panel(name: str, title: str, m: dict[str, Any], interactive: bool) -> str:
+    """One log on the monitor screen. Interactive: starts unchecked and a button runs the monitor.
+    Static: pre-filled with the measured values."""
+    if interactive:
+        cls, status, base, recent, limit = "monpanel", "NOT CHECKED", "-", "-", "-"
+        button = f'<button class="chip" id="mon-run-{name}" type="button">Run the monitor</button>'
+    else:
+        cls = "monpanel " + ("bad" if m["drift"] else "good")
+        status = "DRIFT DETECTED" if m["drift"] else "NORMAL"
+        base, recent, limit = (f"{m['baseline_per_hour']:.2f} /h", f"{m['recent_per_hour']:.2f} /h",
+                               f"{m['threshold']:.2f} /h")
+        button = ""
+    return f"""<div class="{cls}" id="mon-{name}">
+<div class="monhead"><span class="lamp"></span><div><b>{escape(title)}</b><span class="monstatus" id="mon-{name}-status">{status}</span></div>{button}</div>
+{sparkline(m, name)}
+<dl class="readouts"><div><dt>Before release</dt><dd id="mon-{name}-base">{base}</dd></div>
+<div><dt>Recent</dt><dd id="mon-{name}-recent">{recent}</dd></div>
+<div><dt>Drift limit</dt><dd id="mon-{name}-limit">{limit}</dd></div></dl>
+</div>"""
 
 
 def _tile(kind: str, label: str, title: str, detail: str, href: str, load: str) -> str:
@@ -103,6 +130,7 @@ def render_explainer(rep: dict[str, Any], interactive: bool = False) -> str:
     base, gate = rep["baseline"], rep["gate"]
     a, c = rep["scenarios"]["a"], rep["scenarios"]["c"]
     try_href = "#try" if interactive else "#results"
+    n_mon, n_res, n_lim = (4, 5, 6) if interactive else (3, 4, 5)
 
     tiles = (
         _tile("bad" if a["blocked"] else "good", "Change A / loosen a limit", "Blocked" if a["blocked"] else "Allowed",
@@ -148,6 +176,8 @@ def render_explainer(rep: dict[str, Any], interactive: bool = False) -> str:
                   f'{len(a["newly_missed"])} tank faults unnoticed (hatched red). Run the lab below to try your own.</p>'
                   if interactive else
                   f'<p class="hint">Showing change A: the loosened limit would leave {len(a["newly_missed"])} tank faults unnoticed (hatched red).</p>')
+    mon_diag = ('<pre class="term" id="mon-diag" aria-live="polite">Press a button on a log to run the monitor on it.</pre>'
+                if interactive else "")
     cta_try = ('<a class="btn" href="#try">Try it yourself</a>' if interactive
                else '<a class="btn" href="#results">See the results</a>')
 
@@ -159,7 +189,7 @@ def render_explainer(rep: dict[str, Any], interactive: bool = False) -> str:
 <div class="stripe"></div>
 <header class="nav"><div class="wrap">
 <a class="brand" href="#top"><span class="glyph"><i></i><i></i><i></i><i></i></span>ALARMOPS</a>
-<nav class="links" aria-label="Sections"><a href="#problem">Problem</a><a href="#how">How it works</a>{nav_try}<a href="#results">Results</a><a href="#limits">Limits</a></nav>
+<nav class="links" aria-label="Sections"><a href="#problem">Problem</a><a href="#how">How it works</a>{nav_try}<a href="#monitor">Monitor</a><a href="#results">Results</a><a href="#limits">Limits</a></nav>
 <span class="simtag">SIMULATION</span>
 </div></header>
 
@@ -204,20 +234,24 @@ def render_explainer(rep: dict[str, Any], interactive: bool = False) -> str:
 
 {lab}
 
+<section id="monitor"><div class="wrap">
+<div class="sectionhead"><p class="kicker">0{n_mon} / After release</p><h2>The monitor screen</h2>
+<p class="mute">Releasing a change is not the end. The monitor counts alarms per hour after the release and compares the recent hours with the quiet period before. If the rate climbs past the drift limit, it raises an issue with a diagnosis.</p></div>
+<div class="two">
+{monitor_panel('healthy', 'Healthy log', mon['healthy'], interactive)}
+{monitor_panel('drift', 'Drifting log', mon['drift'], interactive)}
+</div>
+{mon_diag}
+<p class="small mute">What you are looking at: alarms per hour over 72 simulated hours. The dashed line is the drift limit and the shaded strip is the recent window the monitor checks. A healthy line stays under the limit; a drifting one climbs through it.</p>
+</div></section>
+
 <section id="results"><div class="wrap">
-<div class="sectionhead"><p class="kicker">04 / Results</p><h2>Measured, not claimed</h2>
+<div class="sectionhead"><p class="kicker">0{n_res} / Results</p><h2>Measured, not claimed</h2>
 <p class="mute">The figures come from replaying the simulated data on each version of the rules, every time this page is built. None are typed in by hand.</p></div>
 <div class="grid3">{cells}</div>
 
-<div class="two" style="margin-top:36px">
-<div><h3>After release</h3><p class="small mute">A monitor compares alarms per hour now with the quiet period before. A healthy log stays under the limit; the drifting one breaks it.</p>
-<div class="two" style="gap:14px">
-<div><p class="small mute" style="margin:0 0 4px">HEALTHY</p>{sparkline(mon['healthy'], 'healthy')}</div>
-<div><p class="small mute" style="margin:0 0 4px">DRIFTING</p>{sparkline(mon['drift'], 'drifting')}</div>
-</div></div>
-<div><h3>Baseline by tag</h3><table><tr><th>Tag</th><th>Faults noticed</th><th>False alarms</th></tr>{tag_rows}</table>
+<div style="margin-top:36px;max-width:760px"><h3>Baseline by tag</h3><table><tr><th>Tag</th><th>Faults noticed</th><th>False alarms</th></tr>{tag_rows}</table>
 <p class="small mute">Baseline overall: {base['faults_detected']} of {base['faults_total']} noticed, {base['false_alarm_count']} false alarms.</p></div>
-</div>
 
 <details><summary>How the pass or fail is decided</summary>
 <p>A change passes if it keeps at least {_pct(gate['min_detection_rate'])} detection, loses no more than {_pct(gate['max_detection_rate_drop'])} compared with the current rules,
@@ -227,7 +261,7 @@ These thresholds are choices for this demo, not an industry standard. Raw number
 </div></section>
 
 <section id="limits"><div class="wrap">
-<div class="sectionhead"><p class="kicker">05 / What this is not</p><h2>Honest limits</h2></div>
+<div class="sectionhead"><p class="kicker">0{n_lim} / What this is not</p><h2>Honest limits</h2></div>
 <div class="limits">
 <div><b>A simulation</b>The sensor data is made up and the deployment is simulated. It is not connected to any real plant or equipment.</div>
 <div><b>Not a certification</b>The mapping to ISA-18.2 and IEC 62443 in each change record is a reference mapping. It is not a certificate or a compliance claim.</div>

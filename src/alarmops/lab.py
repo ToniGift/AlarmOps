@@ -189,4 +189,6 @@ class Lab:
                     "[in GitLab, this opens an issue; the website does not]"]
         else:
             out.append("MONITOR: OK, no drift")
-        return {"command": out[0][2:], "output": "\n".join(out), "drift": res["drift"]}
+        return {"command": out[0][2:], "output": "\n".join(out), "drift": res["drift"],
+                "baseline_per_hour": res["baseline_per_hour"], "recent_per_hour": res["recent_per_hour"],
+                "threshold": res["threshold"]}

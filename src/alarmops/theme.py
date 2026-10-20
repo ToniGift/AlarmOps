@@ -166,9 +166,24 @@ table{border-collapse:collapse;width:100%;font:.9rem/1.4 var(--mono)}
 th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
 th{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
 .spark{width:100%;height:auto;display:block;background:var(--plot);border:1px solid var(--line)}
-.spark .s{fill:none;stroke:var(--steel);stroke-width:1.6}.spark .s.drift{stroke:var(--red)}
-.spark .th{stroke:var(--amber);stroke-width:1;stroke-dasharray:4 4}.spark .rc{fill:var(--amber);opacity:.14}
+.spark .s{fill:none;stroke:var(--steel);stroke-width:1.8}.spark .s.drift{stroke:var(--red);stroke-width:2.2}
+.spark .th{stroke:var(--amber);stroke-width:1.2;stroke-dasharray:5 4}.spark .rc{fill:var(--amber);opacity:.14}
+.spark .gridline{stroke:var(--grid);stroke-width:1}
 .spark text{font:10px var(--mono);fill:var(--mute)}
+/* monitor screen */
+.monpanel{border:2px solid var(--line);background:var(--panel);padding:14px}
+.monhead{display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+.monhead>div{flex:1;min-width:140px}
+.monhead b{display:block;font:700 1.05rem/1.2 var(--head);letter-spacing:.08em;text-transform:uppercase}
+.monstatus{font:700 .78rem/1.3 var(--mono);letter-spacing:.12em;color:var(--mute)}
+.monpanel .lamp{width:26px;height:26px;grid-row:auto;flex:none}
+.monpanel.bad{border-color:var(--red)}.monpanel.bad .lamp{background:var(--red);box-shadow:0 0 14px var(--red);border-color:var(--red)}.monpanel.bad .monstatus{color:var(--red)}
+.monpanel.good{border-color:var(--green)}.monpanel.good .lamp{background:var(--green);box-shadow:0 0 14px var(--green);border-color:var(--green)}.monpanel.good .monstatus{color:var(--green)}
+dl.readouts{display:grid;grid-template-columns:repeat(3,1fr);margin:12px 0 0;border-top:1px solid var(--line)}
+dl.readouts div{padding:10px 12px 0 0}
+dl.readouts dt{font:600 .68rem/1.2 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+dl.readouts dd{margin:4px 0 0;font:700 1.35rem/1.1 var(--mono)}
+#mon-diag{margin:18px 0 6px;min-height:90px}
 details{border:1px solid var(--line);background:var(--panel);padding:12px 16px;margin-top:14px}
 summary{cursor:pointer;font:700 .8rem/1.2 var(--head);letter-spacing:.1em;text-transform:uppercase}
 

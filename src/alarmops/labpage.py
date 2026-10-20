@@ -59,13 +59,6 @@ def render_lab(rep: dict) -> str:
 <div class="chips"><button class="chip" id="scan-example" type="button">Insert a fake example key</button>
 <button class="btn" id="run-scan" type="button">Run the secret scan</button></div>
 </div>
-
-<div class="group">
-<h3>Watch the alarm rate after a release</h3>
-<p class="small mute">The monitor compares the alarms per hour now with the quiet period before.</p>
-<div class="chips"><button class="chip" id="mon-healthy" type="button">Healthy log</button>
-<button class="chip" id="mon-drift" type="button">Drifting log</button></div>
-</div>
 </div>
 
 <div class="labout"><h3>What the command line would print</h3>
@@ -195,14 +188,25 @@ LAB_JS = r"""
     // a FAKE key, assembled at run time so this file never contains a key-shaped string
     $("scan-text").value = "aws_access_key_id=" + "AKIA" + "ABCDEFGHIJKLMNOP" + "\nregion=eu-west-1\n";
   };
-  ["healthy", "drift"].forEach(function (name) {
-    $("mon-" + name).onclick = function () {
-      call("/api/lab/monitor?log=" + name).then(function (r) {
-        if (!r) { return; }
-        show(r.output); pills.textContent = "";
-        setVerdict(r.drift ? "Drift detected. In GitLab this opens an issue." : "No drift. Alarm rate is normal.",
-                   r.drift ? "bad" : "good");
-      });
+  // the monitor screen: run the monitor on a log and fill in that log's panel
+  var monNames = ["healthy", "drift"];
+  function monBusy(on) { monNames.forEach(function (n) { var b = $("mon-run-" + n); if (b) { b.disabled = on; } }); }
+  monNames.forEach(function (name) {
+    var btn = $("mon-run-" + name);
+    if (!btn) { return; }
+    btn.onclick = function () {
+      monBusy(true);
+      fetch("/api/lab/monitor?log=" + name).then(function (r) {
+        return r.json().then(function (j) { if (!r.ok) { throw new Error(j.error || r.statusText); } return j; });
+      }).then(function (r) {
+        $("mon-" + name).className = "monpanel " + (r.drift ? "bad" : "good");
+        $("mon-" + name + "-status").textContent = r.drift ? "DRIFT DETECTED" : "NORMAL";
+        $("mon-" + name + "-base").textContent = r.baseline_per_hour.toFixed(2) + " /h";
+        $("mon-" + name + "-recent").textContent = r.recent_per_hour.toFixed(2) + " /h";
+        $("mon-" + name + "-limit").textContent = r.threshold.toFixed(2) + " /h";
+        $("mon-diag").textContent = r.output;
+      }).catch(function (e) { $("mon-diag").textContent = "error: " + e.message; })
+        .then(function () { monBusy(false); });
     };
   });
 
