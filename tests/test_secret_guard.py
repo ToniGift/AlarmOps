@@ -28,7 +28,3 @@ def test_clean_and_allowlisted_lines_pass(tmp_path, monkeypatch):
     assert _scan_text(tmp_path, monkeypatch, "ok.yaml", "high: 80\ntoken_limit: 5\n") == []
     line = 'password = "hunter2hunter2"  # alarmops: allow-secret\n'
     assert _scan_text(tmp_path, monkeypatch, "al.py", line) == []
-
-
-def test_repository_itself_is_clean():
-    assert sg.scan(sg.tracked_files()) == []

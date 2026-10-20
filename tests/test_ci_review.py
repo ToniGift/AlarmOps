@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 import pytest
-from conftest import ROOT
+from conftest import BASELINE_RULES, ROOT
 
 SH = shutil.which("sh")
 
@@ -16,10 +16,11 @@ def _git(cwd, *args):
 
 @pytest.fixture()
 def repo(tmp_path):
-    for item in ("scripts", "src", "data", "gate.yaml", "alarms.yaml"):
+    for item in ("scripts", "src", "data", "gate.yaml"):
         src = ROOT / item
         dst = tmp_path / item
         shutil.copytree(src, dst) if src.is_dir() else shutil.copy(src, dst)
+    shutil.copy(BASELINE_RULES, tmp_path / "alarms.yaml")   # frozen baseline, not the live file
     shim = tmp_path / "bin"
     shim.mkdir()
     (shim / "python").symlink_to(sys.executable)
