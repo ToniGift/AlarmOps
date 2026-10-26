@@ -29,6 +29,6 @@ gcloud run deploy "$SERVICE" \
 URL="$(gcloud run services describe "$SERVICE" --project "$GCP_PROJECT_ID" --region "$REGION" --format 'value(status.url)')"
 echo "Deployed: $URL"
 
-# Post-deploy check, the same idea as the validate stage.
-curl -fsS "$URL/healthz"
-echo
+# Post-deploy check, the same idea as the validate stage. Cloud Run reserves some paths ending
+# in "z" (so /healthz is not reachable on run.app), so check the root path.
+curl -fsS -o /dev/null "$URL/" && echo "OK: $URL/ responded"

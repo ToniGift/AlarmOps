@@ -20,7 +20,7 @@ Secret detection blocks hard-coded credentials. The pipeline then generates a ch
 an SBOM, deploys to staging, validates the release, and waits for a human to approve production
 (Supervised autonomy). After deployment a monitor watches the alarm rate and reports a
 diagnosis when it drifts. A web page explains the system in plain English and has a "Try it yourself" lab where
-anyone can edit a limit and watch the real gate pass or block it. GitLab's built-in Duo "Fix CI/CD Pipeline" flow was run once on the blocked merge request (change A). Custom Duo flows for review, triage and diagnosis are designed in the repository but not built.
+anyone can edit a limit and watch the real gate pass or block it. GitLab's built-in Duo "Fix CI/CD Pipeline" flow was run once on the blocked merge request (change A). Custom Duo flows for review, triage and diagnosis are designed in the repository but not built. A live copy of the web page and lab runs on Google Cloud Run: https://alarmops-7150310775.europe-west1.run.app
 
 **How we used GitLab.** GitLab CI/CD for nine stages (plan, review, test, security, compliance,
 deploy_staging, validate, approve, monitor), GitLab Secret Detection,
@@ -36,7 +36,7 @@ pump-pressure alarms per hour.
 connection. Standards references are a mapping, not a certification.
 
 **Built with:** GitLab Duo Agent Platform (built-in Fix CI/CD Pipeline flow), GitLab CI/CD, GitLab Secret Detection, Python,
-PyYAML, pytest, CycloneDX, Docker.
+PyYAML, pytest, CycloneDX, Docker, Google Cloud Run.
 
 ## Fields to have ready
 
@@ -44,7 +44,7 @@ PyYAML, pytest, CycloneDX, Docker.
 - [ ] YouTube video URL (public, under 3 minutes)
 - [ ] Text description (above)
 - [ ] Path: **A: Start Fresh**; autonomy level: **Supervised**
-- [ ] Optional bonus: public Cloud Run URL (deploy with `cloud/cloudrun_deploy.sh`; add the URL to the README and Devpost; skip if not live)
+- [ ] Public Cloud Run URL (live): https://alarmops-7150310775.europe-west1.run.app (add to Devpost and README)
 - [ ] Optional: Most Environmentally Impactful opt-in (not pursued; skip)
 
 ## By-hand checklist

@@ -55,6 +55,7 @@ section:nth-of-type(even){background:var(--band)}
 .herobg{background:linear-gradient(var(--blueprint) 1px,transparent 1px) 0 0/48px 48px,linear-gradient(90deg,var(--blueprint) 1px,transparent 1px) 0 0/48px 48px}
 .hero{display:grid;grid-template-columns:1.1fr 1fr;gap:clamp(28px,5vw,96px);align-items:center;padding-top:clamp(44px,8vw,110px);padding-bottom:clamp(40px,6vw,90px)}
 @media (max-width:860px){.hero{grid-template-columns:1fr;gap:28px}}
+@media (min-width:861px){.hero{padding-top:clamp(22px,4vw,55px)}}
 .cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
 .btn{font:700 .82rem/1 var(--head);letter-spacing:.12em;text-transform:uppercase;text-decoration:none;display:inline-block;
   padding:13px 18px;border:1px solid var(--amber);background:var(--amber);color:var(--amber-ink);cursor:pointer;border-radius:2px}

@@ -9,6 +9,16 @@ GitLab Transcend "Life After Code" hackathon (Path A: Start Fresh, **Supervised*
 > **This is a simulation.** It reads simulated sensor data from CSV files. It does not
 > connect to, or control, any real plant equipment.
 
+## Live page
+
+**Try it:** https://alarmops-7150310775.europe-west1.run.app (Google Cloud Run, simulation only)
+
+![AlarmOps web page: change status panel showing change A blocked, change B blocked and change C ready](docs/images/webapp.png)
+
+The page explains the idea in plain English and has a "Try it yourself" lab. The lab replays the bundled simulated fault dataset against tank limits you edit, using the same replay and gate code as the pipeline, and shows whether the change passes or is blocked and which faults it would miss; staging, approval and monitoring run only in the GitLab pipeline.
+
+![AlarmOps lab: tank limits 10, 20, 75 and 88 pass the review gate; later stages are marked GitLab only](docs/images/webapp-lab.png)
+
 ## The problem
 
 In a plant, an *alarm limit* is the value at which the control system alerts an operator
@@ -80,8 +90,8 @@ flowchart TB
   lib -->|packaged as| img
 ```
 
-Everything inside "The repository" is simulation: no real plant connection. The Cloud Run part is optional
-and only live once you deploy it (see "Google Cloud" below).
+Everything inside "The repository" is simulation: no real plant connection. The Cloud Run part is optional;
+a live deployment is linked under "Google Cloud" below.
 
 ## Pipeline
 
@@ -101,6 +111,8 @@ flowchart LR
 
 Merge-request pipelines run up to `validate`. The production approval exists only on the
 default branch, so it cannot be reached from an unmerged change.
+
+![The web page's "How it works" section: nine pipeline steps, with approval as the one step a person performs](docs/images/webapp-how-it-works.png)
 
 ### GitLab lifecycle stages touched
 
@@ -198,13 +210,14 @@ Deploy to Cloud Run (you need your own Google Cloud project with billing; the fr
 gcloud auth login
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
 export GCP_PROJECT_ID=<your-project-id> GCP_REGION=europe-west1
-sh cloud/cloudrun_deploy.sh                        # prints the public URL and checks /healthz
+sh cloud/cloudrun_deploy.sh                        # prints the public URL and checks "/"
 ```
 
 In GitLab, the manual `deploy_cloud_run` job (after the production approval) does the same when
 `GCP_PROJECT_ID`, `GCP_REGION` and a file-type `GCP_SA_KEY` CI variable are set. Never commit the key.
-Status: the container and web app are tested locally; the Cloud Run deployment itself has not been
-run from this repository yet. Put the public URL here once it is live: TODO.
+Status: the container and web app are tested locally. Deployed on Google Cloud Run:
+https://alarmops-7150310775.europe-west1.run.app
+Cloud Run reserves some URL paths ending in z, so /healthz is not reachable on run.app; it works locally.
 
 ## How the measurement works
 
@@ -225,8 +238,7 @@ run from this repository yet. Put the public URL here once it is live: TODO.
 
 - Simulation only. No real plant connection, no real operator workflow.
 - Deployment is simulated: a "release" is `alarms.yaml` plus a hashed manifest, verified before
-  promotion. The Google Cloud Run deployment code is included (`cloud/`), but it is only
-  "live" once you have deployed it to your own Google Cloud project (see below).
+  promotion. The web page and lab are deployed on Google Cloud Run (URL below); the release pipeline itself is still simulated.
 - The ISA-18.2 / IEC 62443 table in each change record is a **reference mapping, not a
   certification**. Clause numbers are intentionally omitted.
 - Scanner availability depends on the GitLab tier. Secret Detection is enabled;

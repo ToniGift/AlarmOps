@@ -49,7 +49,7 @@ your screen before recording; if anything differs, say what you see, not what is
 - Do not claim the Duo agent fixed anything. It suggested a fix that you chose not to apply.
 - Do not read out the Duo comment's mention of `ci_review.sh` as the place for thresholds. They are in `gate.yaml`.
 - Do not claim real-plant safety, certification or compliance. The standards table is a reference mapping.
-- Do not claim Google Cloud deployment (it is not implemented).
+- Mention Google Cloud Run only if the live URL is on screen.
 
 ## After recording
 
