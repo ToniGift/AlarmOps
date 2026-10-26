@@ -1,6 +1,6 @@
 # Submission pack
 
-Deadline: **27 Oct 2026, 13:00 UTC** (14:00 in Poland). Plan to submit on **26 Oct**.
+Deadline: 27 Oct 2026, 13:00 UTC (14:00 in Poland). Submit today.
 
 ## Devpost text description (draft; edit the Duo sentences to match what actually runs)
 
@@ -18,15 +18,14 @@ rules and reports the change in fault-detection rate and false-alarm count. A ch
 too much detection is blocked, and the measured numbers are posted on the merge request.
 Secret detection blocks hard-coded credentials. The pipeline then generates a change record and
 an SBOM, deploys to staging, validates the release, and waits for a human to approve production
-(Supervised autonomy). After deployment a monitor watches the alarm rate and opens an issue with
-a diagnosis when it drifts. A web page explains the system in plain English and has a "Try it yourself" lab where
-anyone can edit a limit and watch the real gate pass or block it. <!-- Edit: describe each Duo flow that actually runs. -->
+(Supervised autonomy). After deployment a monitor watches the alarm rate and reports a
+diagnosis when it drifts. A web page explains the system in plain English and has a "Try it yourself" lab where
+anyone can edit a limit and watch the real gate pass or block it. GitLab's built-in Duo "Fix CI/CD Pipeline" flow was run once on the blocked merge request (change A). Custom Duo flows for review, triage and diagnosis are designed in the repository but not built.
 
 **How we used GitLab.** GitLab CI/CD for nine stages (plan, review, test, security, compliance,
-deploy_staging, validate, approve, monitor), GitLab Secret Detection, merge request comments,
-environments with a manual production gate, scheduled pipelines and issues for monitoring, and
-GitLab Duo Agent Platform flows for merge request review, triage and diagnosis. Together these
-touch all nine lifecycle stages.
+deploy_staging, validate, approve, monitor), GitLab Secret Detection,
+environments with a manual production gate, a monitor job, and GitLab Duo's built-in Fix
+CI/CD Pipeline flow (run once, on a merge request). The pipeline's jobs map onto the nine GitLab lifecycle stages (table in the README).
 
 **Results.** On the committed dataset (21 labelled faults): baseline detects 21/21 with 0 false
 alarms. Widening a tank limit drops detection to 17/21 and is blocked. A safe tightening keeps
@@ -36,7 +35,7 @@ pump-pressure alarms per hour.
 **Limitations.** Simulation only: synthetic data, simulated deployment, no real plant
 connection. Standards references are a mapping, not a certification.
 
-**Built with:** GitLab Duo Agent Platform, GitLab CI/CD, GitLab Secret Detection, Python,
+**Built with:** GitLab Duo Agent Platform (built-in Fix CI/CD Pipeline flow), GitLab CI/CD, GitLab Secret Detection, Python,
 PyYAML, pytest, CycloneDX, Docker.
 
 ## Fields to have ready
@@ -63,6 +62,7 @@ PyYAML, pytest, CycloneDX, Docker.
 - [ ] Protect the `production` environment
 - [ ] Merge `.gitlab/duo/agent-config.yml` to the default branch
 - [ ] Day-1 gate: one Duo flow runs on an MR (see `docs/duo-agents.md`)
+- [ ] Public repo URL noted, project visibility is Public, MIT License shown in About
 
 ### Evidence for judges
 - [ ] Open MR A, B, C; wait for pipelines. **Leave A and B unmerged and open**
@@ -71,8 +71,10 @@ PyYAML, pytest, CycloneDX, Docker.
 - [ ] Confirm the MR comment appears on A and C
 - [ ] Merge **C last**; confirm the manual `deploy_production` job appears on `main`; click it
 - [ ] Add a pipeline schedule for `monitor_alarm_rate` and run it once
-- [ ] Update the status column in `README.md` to match what really runs
+- [ ] README Duo table must say the built-in Fix CI/CD Pipeline flow ran on MR !1 and the custom flows are designed, not built.
 - [ ] Never merge `demo-change-b` (fake credential)
+- [ ] Screenshot or link of the Duo "Fix CI/CD Pipeline" run on MR !1 (our one real Duo evidence)
+- [ ] Run monitor_alarm_rate on main once and check whether a monitoring issue appears
 
 ### Google Cloud (optional bonus, up to +0.2)
 - [ ] Create a Google Cloud project with billing; add a budget alert
@@ -92,6 +94,7 @@ PyYAML, pytest, CycloneDX, Docker.
 - [ ] Complete the Devpost "Enter a Submission" form; save as draft first
 - [ ] Submit on 26 Oct, a day early
 - [ ] Do not delete the repo, MRs or branches until after winners are announced (~16 Nov)
+- [ ] YouTube link added to the Devpost form and to the README
 
 ## Rules to remember
 - The repo must stay public and open source (MIT) for judging.

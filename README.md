@@ -47,7 +47,7 @@ All numbers are produced by the replay harness on the committed dataset
 |---|---|---|
 | Baseline rules | Original limits | 21/21 faults detected, 0 false alarms |
 | `demo-change-a` | Widens the tank `high` / `high_high` limits to 88 / 95 | **Blocked at review.** Detection 100% to 81.0% (17/21). Four tank faults no longer detected |
-| `demo-change-b` | Adds a (fake) hard-coded credential | **Blocked at security** |
+| `demo-change-b` | Adds a (fake) hard-coded credential | **Blocked at security.** GitLab Secret Detection reports 1 critical finding (AWS Access Key ID); merge blocked |
 | `demo-change-c` | Tightens the tank limits to 75 / 88 | Passes every stage; **waits for human approval**. 21/21, 0 false alarms |
 | Post-deploy monitor | Simulated drifting alarm log | Detects drift: `pump_pressure` 0.79 to 13.67 alarms/hour |
 
@@ -106,29 +106,29 @@ default branch, so it cannot be reached from an unmerged change.
 
 | Lifecycle stage | AlarmOps job(s) |
 |---|---|
-| Plan | `validate_rules`; issue triage flow (Duo) |
-| Create | merge request review: `replay_review` and the MR review flow (Duo) |
+| Plan | `validate_rules` (an issue-triage Duo flow is designed, not built) |
+| Create | merge request review: `replay_review` gate, plus GitLab's built-in Duo Fix CI/CD Pipeline flow |
 | Verify | `unit_tests`, `replay_test`, `validate_staging` |
 | Package | `sbom` (CycloneDX), `Dockerfile`, optional `build_image` |
 | Secure | GitLab Secret Detection, `secret_guard` |
 | Release | `deploy_staging`, `deploy_production` (manual) |
 | Configure | alarm rules as code (`alarms.yaml`, `gate.yaml`), `staging` / `production` environments |
-| Monitor | `monitor_alarm_rate`, monitoring flow (Duo) |
+| Monitor | `monitor_alarm_rate` (a monitoring-diagnosis Duo flow is designed, not built) |
 | Govern | `change_record`, ISA-18.2 / IEC 62443 reference mapping, approval gate, audit trail |
 
 ## Where GitLab Duo Agent Platform is used
 
-Flows are created in the GitLab UI (AI > Flows) and their YAML is committed under
-`duo/flows/`. The full design, prompts and status of each flow are in
-[`docs/duo-agents.md`](docs/duo-agents.md).
+Duo Agent Platform is switched on in this project. What has actually run, and what is only designed:
 
-| Flow | Trigger | Job | Status |
+| Flow | Trigger | What it does | Status |
 |---|---|---|---|
-| MR review | Flow service account assigned as reviewer | Explains the replay result and risk on the MR | TODO: update after it runs |
-| Issue triage | Mention in an issue | Classifies change requests and applies labels | TODO |
-| Security / pipeline summary | Pipeline event | Summarises scan findings and failures | TODO |
-| Monitoring diagnosis | Mention on the monitoring issue | Explains the alarm-rate drift | TODO |
+| GitLab built-in Fix CI/CD Pipeline | "Fix pipeline with Duo" button on a failed pipeline (clicked by a person) | Read the failing replay_review job and the diff, explained that detection fell from 100% to 81.0%, and suggested restoring the old limits. The suggestion was deliberately not applied | Ran on merge request !1 (demo A) |
+| Custom MR review flow | Flow service account assigned as reviewer | Explain the replay result and risk on the MR | Designed, not built |
+| Custom issue triage flow | Mention in an issue | Classify change requests and label them | Designed, not built |
+| Custom pipeline summary flow | Pipeline event | Summarise scan findings and failures | Designed, not built |
+| Custom monitoring diagnosis flow | Mention on the monitoring issue | Explain an alarm-rate drift | Designed, not built |
 
+The designs and draft prompts are in `docs/duo-agents.md`. Custom flows are created in the GitLab UI; `duo/flows/` holds only a placeholder, and no custom flow YAML is committed.
 Execution settings for flows are in `.gitlab/duo/agent-config.yml`.
 
 ## Try it (no GitLab account needed)

@@ -1,13 +1,15 @@
 # GitLab Duo Agent Platform in AlarmOps
 
 The hackathon requires every project to use GitLab Duo Agent Platform (agents, flows or MCP
-clients). Stage 1 judging is pass/fail on this. AlarmOps uses **flows**.
+clients). Stage 1 judging is pass/fail on this. AlarmOps is designed around **flows**. So far only GitLab's built-in Fix CI/CD Pipeline flow
+has run (once, on merge request !1); the four custom flows below are designs, not built.
 
 ## Honest status
 
 | Part | Status |
 |---|---|
 | CI/CD pipeline, gate, scanners, deploy, monitor | Built and tested locally (see README) |
+| GitLab built-in Fix CI/CD Pipeline flow | Ran once on merge request !1 (demo A), started by a person |
 | Duo flow YAML | **To be built in the GitLab UI.** Its detailed syntax was not confirmed when this was written, so it is deliberately not guessed here |
 | `.gitlab/duo/agent-config.yml` | Written using only the keys the docs list; needs checking on first run |
 
@@ -70,8 +72,7 @@ Goal: get *any* flow to run and comment on an MR before building more.
    the submission, so it must be in the repository.
 
 If this fails, stop and diagnose before building anything else. If it cannot be made to work,
-tell the hackathon manager (email on the Devpost page) and ask; the project does not satisfy
-the requirements without a working Duo flow.
+tell the hackathon manager (email on the Devpost page) and ask.
 
 ## Flow designs
 
