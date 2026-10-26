@@ -31,6 +31,8 @@ controlled management of change. In practice that review is manual, nobody measu
 change does to detection, the evidence is gathered by hand, and nothing watches the alarm
 rate after deployment.
 
+![The web page's "The problem" section: a loosened limit fails silently, with a glossary of the words used on the page](docs/images/webapp-problem.png)
+
 ## What AlarmOps does
 
 For every merge request that changes `alarms.yaml`:
