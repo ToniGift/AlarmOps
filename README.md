@@ -150,7 +150,7 @@ Execution settings for flows are in `.gitlab/duo/agent-config.yml`.
 Requires Python 3.11+ and git.
 
 ```bash
-git clone <this repository> alarmops && cd alarmops
+git clone https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43552486/showcase.git alarmops && cd alarmops
 python -m venv .venv
 source .venv/bin/activate              # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt && pip install -e .
@@ -260,7 +260,6 @@ tests/                       unit and end-to-end tests (frozen baseline fixtures
 .gitlab-ci.yml               the pipeline
 .gitlab/duo/, duo/flows/     Duo Agent Platform configuration
 docs/duo-agents.md           flow designs, prompts, and setup steps
-DEMO_SCRIPT.md               timed script for the demo video
 SUBMISSION.md                Devpost text and the submission checklist
 ```
 

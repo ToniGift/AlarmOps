@@ -10,3 +10,4 @@ out/
 deploy/
 .cache/
 .sbom-env/
+DEMO_SCRIPT.md

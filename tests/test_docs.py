@@ -30,7 +30,7 @@ def test_readme_demo_a_numbers_match_measurement():
 
 
 def test_documents_referenced_by_readme_exist():
-    for rel in ("docs/duo-agents.md", "DEMO_SCRIPT.md", "SUBMISSION.md", "LICENSE",
+    for rel in ("docs/duo-agents.md", "SUBMISSION.md", "LICENSE",
                 ".gitlab/duo/agent-config.yml", "gate.yaml", "alarms.yaml"):
         assert (ROOT / rel).exists(), rel
         assert rel in README or rel in ("LICENSE", "alarms.yaml", "gate.yaml")

@@ -89,7 +89,7 @@ PyYAML, pytest, CycloneDX, Docker, Google Cloud Run.
 - [ ] `python scripts/local_demo.py` and wait for "Back on 'main'" before touching the folder
 
 ### Submit
-- [ ] Record the video (`DEMO_SCRIPT.md`), upload to YouTube as Public
+- [ ] Record the video, upload to YouTube as Public
 - [ ] Put the video link in `README.md`
 - [ ] Complete the Devpost "Enter a Submission" form; save as draft first
 - [ ] Submit on 26 Oct, a day early

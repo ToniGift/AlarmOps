@@ -171,4 +171,4 @@ deployment (`deploy_production`, a manual job on the default branch).
 - [ ] At least one flow ran on a real merge request and its comment is visible
 - [ ] The working YAML is committed under `duo/flows/` and the placeholder is deleted
 - [ ] `README.md` status column matches reality
-- [ ] The demo video shows a flow running (see `DEMO_SCRIPT.md`)
+- [ ] The demo video shows a flow running
