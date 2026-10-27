@@ -25,7 +25,7 @@ anyone can edit a limit and watch the real gate pass or block it. GitLab's built
 **How we used GitLab.** GitLab CI/CD for nine stages (plan, review, test, security, compliance,
 deploy_staging, validate, approve, monitor), GitLab Secret Detection,
 environments with a manual production gate, a monitor job, and GitLab Duo's built-in Fix
-CI/CD Pipeline flow (run once, on a merge request). The pipeline's jobs map onto the nine GitLab lifecycle stages (table in the README).
+CI/CD Pipeline flow (run once, on a merge request). AlarmOps touches six GitLab lifecycle stages with working evidence (create, verify, secure, release, govern, monitor); plan, package and configure are only lightly touched (table in the README).
 
 **Results.** On the committed dataset (21 labelled faults): baseline detects 21/21 with 0 false
 alarms. Widening a tank limit drops detection to 17/21 and is blocked. A safe tightening keeps

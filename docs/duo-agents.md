@@ -142,7 +142,7 @@ End with the next step the author should take. Do not invent job names or result
 ### 4. Monitoring diagnosis flow
 
 - **Lifecycle stage:** Monitor
-- **Trigger:** mention of the service account on the issue that `monitor_alarm_rate` opens
+- **Trigger:** mention of the service account on a monitoring issue (`monitor_alarm_rate` can open one when an API token is configured)
 - **Writes:** a diagnosis comment
 
 Draft prompt:

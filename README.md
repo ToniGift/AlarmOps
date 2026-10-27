@@ -47,8 +47,8 @@ For every merge request that changes `alarms.yaml`:
    approval line) and an SBOM.
 5. **Deploys it to staging and validates it.** Hash check, replay, and a service smoke test.
 6. **Waits for a human** before production (the single approval gate).
-7. **Monitors it.** A scheduled job watches the post-deploy alarm rate and opens an issue
-   with a diagnosis when it drifts.
+7. **Monitors it.** A scheduled job watches the post-deploy alarm rate and reports a
+   diagnosis (it can also open a GitLab issue when an API token is configured) when it drifts.
 
 ## Measured results
 
@@ -83,7 +83,7 @@ flowchart TB
   end
 
   pipe -->|runs| scripts
-  pipe -.->|monitor opens| issues
+  pipe -.->|monitor can open| issues
 
   subgraph live["Optional live deployment"]
     visitor["Visitor"] --> run["Cloud Run<br/>web page and API"]
@@ -108,7 +108,7 @@ flowchart LR
   STG --> VAL["validate staging"]
   VAL --> HUMAN{{"Human approval"}}
   HUMAN --> PROD["production (default branch only)"]
-  PROD --> MON["monitor: alarm-rate drift, opens issue"]
+  PROD --> MON["monitor: alarm-rate drift, reports a diagnosis (it can also open a GitLab issue when an API token is configured)"]
 ```
 
 Merge-request pipelines run up to `validate`. The production approval exists only on the
@@ -118,17 +118,19 @@ default branch, so it cannot be reached from an unmerged change.
 
 ### GitLab lifecycle stages touched
 
-| Lifecycle stage | AlarmOps job(s) |
-|---|---|
-| Plan | `validate_rules` (an issue-triage Duo flow is designed, not built) |
-| Create | merge request review: `replay_review` gate, plus GitLab's built-in Duo Fix CI/CD Pipeline flow |
-| Verify | `unit_tests`, `replay_test`, `validate_staging` |
-| Package | `sbom` (CycloneDX), `Dockerfile`, optional `build_image` |
-| Secure | GitLab Secret Detection, `secret_guard` |
-| Release | `deploy_staging`, `deploy_production` (manual) |
-| Configure | alarm rules as code (`alarms.yaml`, `gate.yaml`), `staging` / `production` environments |
-| Monitor | `monitor_alarm_rate` (a monitoring-diagnosis Duo flow is designed, not built) |
-| Govern | `change_record`, ISA-18.2 / IEC 62443 reference mapping, approval gate, audit trail |
+AlarmOps touches six GitLab lifecycle stages with working evidence (create, verify, secure, release, govern, monitor); plan, package and configure are only lightly touched.
+
+| Lifecycle stage | AlarmOps job(s) | Evidence |
+|---|---|---|
+| Plan | `validate_rules` (an issue-triage Duo flow is designed, not built) | Light |
+| Create | merge request review: `replay_review` gate, plus GitLab's built-in Duo Fix CI/CD Pipeline flow | Working |
+| Verify | `unit_tests`, `replay_test`, `validate_staging` | Working |
+| Package | `sbom` (CycloneDX), `Dockerfile`, optional `build_image` | Light |
+| Secure | GitLab Secret Detection, `secret_guard` | Working |
+| Release | `deploy_staging`, `deploy_production` (manual) | Working |
+| Configure | alarm rules as code (`alarms.yaml`, `gate.yaml`), `staging` / `production` environments | Light |
+| Monitor | `monitor_alarm_rate` (a monitoring-diagnosis Duo flow is designed, not built) | Working |
+| Govern | `change_record`, ISA-18.2 / IEC 62443 reference mapping, approval gate, audit trail | Working |
 
 ## Where GitLab Duo Agent Platform is used
 
